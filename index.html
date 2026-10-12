@@ -541,7 +541,7 @@ function renderLogic(){
       <h2>Balance</h2>
       <ul class="logic-list">
         <li>Left and right totals within <span class="setting">${esc(s.tol)} kg</span> of each other. The further out, the bigger the penalty.</li>
-        <li>Centre of weight aims for the middle of the boat (row 5.5), trimmed <span class="setting">${trimTxt}</span>. Drummer and sweep weights count when entered.</li>
+        <li>Centre of weight aims for the middle of the boat (row 5.5). Front/Back balance: <span class="setting">${trimTxt}</span>. Drummer and sweep weights count when entered.</li>
         <li>Row partners within 10 kg of each other. Bigger gaps show in yellow beside the row.</li>
       </ul>
       <div class="row-actions"><button class="btn small" id="toSettings">Change settings</button></div>
@@ -715,7 +715,7 @@ function renderAttend(){
         <div><label for="starters">New starters (Level 1–2)</label><select id="starters">
           <option value="middle" ${s.starters==="middle"?"selected":""}>Middle, beside experienced paddlers</option>
           <option value="back" ${s.starters==="back"?"selected":""}>Back, out of the timing line</option></select></div>
-        <div><label for="trim">Front/back trim</label><select id="trim">
+        <div><label for="trim">Front/Back balance</label><select id="trim">
           <option value="neutral" ${s.trim==="neutral"?"selected":""}>Level</option>
           <option value="bow" ${s.trim==="bow"?"selected":""}>Slightly bow heavy</option>
           <option value="stern" ${s.trim==="stern"?"selected":""}>Slightly stern heavy</option></select></div>
