@@ -592,7 +592,13 @@ function renderRoster(){
     ${state.sample?`<div class="panel"><p><strong>This roster is sample data.</strong> Replace it with your club's paddlers, by editing below or importing a CSV.</p><div class="row-actions"><button class="btn" id="clearSample">Clear sample roster</button></div></div>`:""}
     <div class="panel">
       <h2>Roster</h2>
-      <p class="muted">Levels run from 1 (new starter) to 5 (lead paddler). <a href="#levels" id="lvlHelp">What each level means</a>. Section: Stroke can sit in row 1, Engine suits the engine room (rows 4–7), Rocket is reliable at the back (rows 8–10). Tick any that apply. Side only applies on race days; at training, paddlers swap sides. Weights stay on this device and never appear in the shared plan.</p>
+      <p class="muted">Levels run from 1 (new starter) to 5 (lead paddler). <a href="#levels" id="lvlHelp">What each level means</a>.</p>
+      <ul class="logic-list muted">
+        <li>Stroke (row 1)</li>
+        <li>Engine (rows 4–7)</li>
+        <li>Rocket (rows 8–10)</li>
+      </ul>
+      <p class="muted">Tick any that apply. Paddlers' preferred side only applies on race days; at training, paddlers swap sides. Paddler weights and XP levels never appear in the shared plan.</p>
       <div class="roster-wrap"><table class="roster">
         <thead><tr><th rowspan="2">Name</th><th rowspan="2">Weight (kg)</th><th rowspan="2">Level</th><th rowspan="2">Side</th><th colspan="3" class="grp">Section</th><th rowspan="2"><span class="sr">Remove</span></th></tr><tr><th class="c">Stroke</th><th class="c">Engine</th><th class="c">Rocket</th></tr></thead>
         <tbody>${rows||`<tr><td colspan="8" class="empty-state">No paddlers yet. Add one below or import a CSV.</td></tr>`}</tbody>
