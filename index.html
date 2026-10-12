@@ -82,6 +82,10 @@ main{padding:1rem}
 .btn:focus-visible,input:focus-visible,select:focus-visible,nav button:focus-visible,.seat:focus-visible,.chip:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .row-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
 .runs{font:500 .72rem var(--label);color:var(--muted);letter-spacing:.02em}
+.runs summary{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px;list-style:none}
+.runs summary::-webkit-details-marker{display:none}
+.runs[open] span{display:block;margin-top:.2rem;max-width:22rem}
+.lvl-sum{margin:.1rem 0 .3rem}
 /* keeps the count with its button: beside it, or just under it on narrow screens */
 .regen-wrap{display:inline-flex;flex-wrap:wrap;align-items:center;column-gap:.5rem;row-gap:.2rem}
 .why{margin-top:.6rem;font-size:.85rem}
@@ -449,7 +453,7 @@ function ctx(){
   return {m, med:median(att.map(id=>+m[id].weight||0)), s, target:5.5+lean, drummer:(crewRole("drum")||{}).kg||0, sweep:(crewRole("sweep")||{}).kg||0, race:s.sessionType==="race"};
 }
 // Rule groups for the "Why this plan?" breakdown
-const RULES={side:"Preferred sides (race days)",front:"Strokes and front rows",place:"Weight and Engine placement",starters:"New starters' seats",partners:"Row partners' weights",pairs:"New starters side by side",lead:"Engine room leader",lr:"Left/right balance",trim:"Front/back balance",empty:"Empty seats and half-filled rows"};
+const RULES={side:"Preferred sides (race days)",front:"Strokes and front rows",place:"Weight and engine room placement",starters:"New starters' seats",partners:"Row partners' weights",pairs:"New starters side by side",lead:"Engine room leader",lr:"Left/right balance",trim:"Boat balance",empty:"Empty seats and half-filled rows"};
 function seatCost(p,row,side,c,acc){
   let k=0; const lv=+p.level||1, w=+p.weight||0;
   const add=(g,v)=>{ if(!v) return; k+=v; if(acc) acc[g]=(acc[g]||0)+v; };
@@ -565,7 +569,7 @@ function reason(p,i,seats,c){
     else if(lv<=2) parts.push(`At the back as a new starter, ${lvName(lv)}; check they can follow timing from here.`);
     else parts.push(`Back: ${lvName(lv)}${p.rocket?", rocket":""}, a sprinter seat that needs a skilled, fit paddler.`);
   }
-  if(p.engine&&(row<4||row>7)) parts.push("Flagged Engine but seated outside rows 4–7, so check this seat.");
+  if(p.engine&&(row<4||row>7)) parts.push("Flagged Engine but seated outside the engine room, so check this seat.");
   if(row>=4&&row<=7&&lv>=4) parts.push("Experienced enough to anchor the engine room.");
   if(c.race&&p.side!=="E") parts.push(`Paddles ${p.side==="L"?"left":"right"} only.`);
   const partner=seats[s===0?i+1:i-1];
@@ -579,22 +583,22 @@ function warnings(seats,c,ev){
     if(!id){ w.push(`Row ${row} ${sideName(sideOf(i)).toLowerCase()} is empty. Rows 1 and 2 should always be filled.`); continue; }
     const p=c.m[id];
     if(row===1&&!p.stroke) w.push(`Row 1: ${p.name} isn't flagged as stroke-capable.`);
-    if(+p.level<4) w.push(`Row ${row}: ${p.name} is ${lvName(+p.level)}; the front two rows suit Level 4–5.`);
+    if(+p.level<4) w.push(`Row ${row}: ${p.name} is ${lvName(+p.level)}; rows 1–2 suit XP4–XP5.`);
   }
   if(c.race) seats.forEach((id,i)=>{ if(!id) return; const p=c.m[id]; if((p.side==="L"&&sideOf(i)!==0)||(p.side==="R"&&sideOf(i)!==1)) w.push(`${p.name} paddles ${p.side==="L"?"left":"right"} only but is seated on the ${sideName(sideOf(i)).toLowerCase()}.`); });
-  for(let r=1;r<=ROWS;r++){ const a=seats[2*r-2],b=seats[2*r-1]; if(a&&b){ const g=Math.round(Math.abs((+c.m[a].weight||0)-(+c.m[b].weight||0))); if(g>10) w.push(`Row ${r}: partners are ${g} kg apart (${c.m[a].name} and ${c.m[b].name}). AusDBF advises seating paddlers of similar weight together.`); } }
+  for(let r=1;r<=ROWS;r++){ const a=seats[2*r-2],b=seats[2*r-1]; if(a&&b){ const g=Math.round(Math.abs((+c.m[a].weight||0)-(+c.m[b].weight||0))); if(g>10) w.push(`Row ${r}: partners are ${g} kg apart (${c.m[a].name} and ${c.m[b].name}).`); } }
   for(let r=1;r<=ROWS;r++){ const a=seats[2*r-2],b=seats[2*r-1]; if(a&&b&&+c.m[a].level<=2&&+c.m[b].level<=2) w.push(`Row ${r}: two new starters side by side (${c.m[a].name} and ${c.m[b].name}).`); }
   const halfRows=[]; for(let r=1;r<=ROWS;r++){ if(!!seats[2*r-2]!==!!seats[2*r-1]) halfRows.push(r); }
   if(halfRows.length>seats.filter(Boolean).length%2) w.push(`Rows ${halfRows.join(" and ")} each have one paddler. Pair them in one row${state.settings.emptyRows==="spread"?"":" and leave the empty seats together at the back"}.`);
-  [4,5].forEach(i=>{ const id=seats[i]; if(id&&+c.m[id].level<=2) w.push(`Row 3: ${c.m[id].name} is ${lvName(+c.m[id].level)}; front paddlers must stay in stroke, so Level 3+ suits row 3.`); });
-  if(seats.filter(id=>id&&+c.m[id].level>=4).length>=5 && !seats.slice(6,14).some(id=>id&&+c.m[id].level>=4)) w.push("No XP4–5 paddler in the engine room (rows 4–7) to anchor it.");
+  [4,5].forEach(i=>{ const id=seats[i]; if(id&&+c.m[id].level<=2) w.push(`Row 3: ${c.m[id].name} is ${lvName(+c.m[id].level)}; row 3 suits XP3+.`); });
+  if(seats.filter(id=>id&&+c.m[id].level>=4).length>=5 && !seats.slice(6,14).some(id=>id&&+c.m[id].level>=4)) w.push("No XP4–XP5 paddler in the engine room to lead it.");
   const diff=Math.round(Math.abs(ev.L-ev.R)); const tol=tolKg();
   if(diff>tol) w.push(`${ev.L>ev.R?"Left":"Right"} side is ${diff} kg heavier (tolerance ${tol} kg).`);
   const off=ev.com-5.5;
-  if(Math.abs(off)>0.3) w.push(`Boat sits ${off<0?"bow":"stern"} heavy (centre of weight at row ${ev.com.toFixed(1)}).`);
+  if(Math.abs(off)>0.3) w.push(`Boat sits ${off<0?"front":"back"} heavy (centre of weight at row ${ev.com.toFixed(1)}).`);
   return w;
 }
-function trimText(com){ const off=com-5.5; if(Math.abs(off)<=0.1) return "level"; return (Math.abs(off)<=0.3?"slightly ":"")+(off<0?"bow heavy":"stern heavy"); }
+function trimText(com){ const off=com-5.5; if(Math.abs(off)<=0.1) return "level"; return (Math.abs(off)<=0.3?"slightly ":"")+(off<0?"front heavy":"back heavy"); }
 
 /* ---------- rendering ---------- */
 const main=document.getElementById("main");
@@ -609,8 +613,8 @@ function render(){
 
 function renderLogic(){
   const s=state.settings;
-  const trimTxt={neutral:"level",bow:"slightly bow heavy",stern:"slightly stern heavy"}[s.trim]||"level";
-  const startTxt=s.starters==="back"?"at the back, out of the timing line":"in the middle, beside experienced paddlers";
+  const trimTxt={neutral:"level",bow:"slightly front heavy",stern:"slightly back heavy"}[s.trim]||"level";
+  const startTxt=s.starters==="back"?"back, out of the timing line":"middle, beside experienced paddlers";
   // Australian sources only (user instruction 13-Oct-26): AusDBF and Dragon Boat NSW first, then other Australian state bodies, then Australian clubs.
   // A rule no Australian source covers is labelled a planner rule.
   const SRC={
@@ -629,61 +633,56 @@ function renderLogic(){
   };
   const link=([t,u])=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`;
   const roles=[
-    ["Row 1","Strokes: ticked Stroke, XP Level 5 preferred, XP Level 4 accepted","Set the pace for the whole boat and hold it under pressure from behind. The drummer drums in time with the strokes.",
-      [["AusDBF Athlete Pathway (drummer)",SRC.pathway],["Dragon Boat NSW Learn to Paddle plan (strokes as a crew role)",SRC.ltp],["Port Stephens Dragon Boat Club, NSW (strokes set the pace)",SRC.psdbc],["Central Coast Dragon Boat Club (strokes set the stroke rate)",SRC.ccdbc]]],
-    ["Row 2","Pacers: XP Level 4–5","Sit directly behind the strokes, protect them, and are first to pass the timing or a rate change back to the boat.",[["Port Stephens Dragon Boat Club, NSW (pacers)",SRC.psdbc]]],
-    ["Row 3","XP Level 3+ paddlers who keep timing, often lighter","First to take the timing the pacers pass back, so new starters stay out. Lighter paddlers suit the front, where heavier pairs aren't needed.",[["Port Stephens Dragon Boat Club, NSW (pacers pass the timing back to the boat)",SRC.psdbc],["Planner rule (XP3+)",""]]],
-    ["Rows 4–7","Engine room: ticked Engine, heavier and strong, with at least one XP Level 4–5 to lead calls","The middle eight: heavier pairs give power and keep the boat balanced.",
-      [["Dragon Boats SA (heavier pairs in the middle)",SRC.dbsa],["Port Stephens Dragon Boat Club, NSW (engine room = the middle eight)",SRC.psdbc],["Planner rule (at least one XP4–5 to anchor the engine room)",""]]],
-    ["Rows 8–10","Ticked Rocket, and skilled paddlers","Sprinters with an enormous task, so they need to be skilled and fit.",[["Port Stephens Dragon Boat Club, NSW (sprinters at the back)",SRC.psdbc]]],
-    ["Row partners","Paddlers of similar weight side by side","Keeps each row, and the boat, balanced.",
-      [["AusDBF Safety Manual",SRC.safety],["Dragon Boats SA",SRC.dbsa]]],
-    ["Empty seats","Paddlers fill rows in pairs, leaving whole empty rows. Coach setting: at the back, or spread for balance (rows 1–2 always full)","Every paddler has a partner to balance against. At the back keeps the boat tidy but a short crew runs bow heavy. Spreading the empty rows keeps the boat level; the planner often leaves row 3 empty, behind the strokes and row 2. Current setting: "+(s.emptyRows==="spread"?"spread for balance":"at the back")+".",[["Planner rule (tested 13-Oct-26: with 16 paddlers, spreading cut front/back balance points from 83 to 3)",""]]]
+    ["Row 1","Strokes: flagged Stroke, XP Level 5 preferred, XP Level 4 accepted","Set the pace for the whole boat and hold it under pressure from behind. The drummer drums in time with the strokes."],
+    ["Row 2","Pacers: XP Level 4–5","Sit directly behind the strokes, protect them, and are first to pass the timing or a rate change back to the boat."],
+    ["Row 3","XP Level 3+ paddlers who keep timing, often lighter","First to take the timing the pacers pass back, so new starters stay out. Lighter paddlers suit the front, where heavier pairs aren't needed."],
+    ["Rows 4–7","Engine room: flagged Engine, heavier and strong, with at least one XP Level 4–5 to lead calls","The middle eight: heavier pairs give power and keep the boat balanced."],
+    ["Rows 8–10","Flagged Rocket, and skilled paddlers","Sprinters with an enormous task, so they need to be skilled and fit."],
+    ["Row partners","Paddlers of similar weight side by side","Keeps each row, and the boat, balanced."],
+    ["Empty seats","Paddlers fill rows in pairs, leaving whole empty rows. Coach setting: at the back, or spread for balance (rows 1–2 always full)","Every paddler has a partner to balance against. At the back keeps the boat tidy but a short crew runs front heavy. Spreading the empty rows keeps the boat level; the planner often leaves row 3 empty, behind the strokes and row 2. Current setting: "+(s.emptyRows==="spread"?"spread for balance":"at the back")+"."]
   ];
-  // Experience levels map onto the AusDBF Athlete Pathway phases (adopted by Dragon Boat NSW).
-  // No official body publishes a 1–5 paddler scale; the boundaries between levels are a coaching judgement.
   const levels=[
     {n:1,name:"New starter",stage:"AusDBF Foundation 1: learning basic movement",crit:[
       "Behaves safely in the boat and on the water, and follows the steerer's directions.",
       "Gets in and out of the boat correctly, with correct posture and seating.",
       "Holds the paddle correctly and shows an understanding of timing.",
       "Understands boat commands, such as slowing and stopping, and can do basic paddling drills."],
-      seats:"Middle or back, depending on the new-starter setting. Never rows 1–2, and kept out of row 3.",
+      sum:"Learning the basics: safety, getting in and out, timing and commands.",seats:"Middle or back, per the new-starter setting. Never rows 1–2, and kept out of row 3.",
       src:[["AusDBF Athlete Pathway, Foundation 1",SRC.pathway],["Dragon Boat NSW athlete pathway",SRC.dbnsw],["Dragon Boat Victoria, Foundation Phase 1",SRC.dbv]]},
     {n:2,name:"Developing",stage:"AusDBF Foundation 2: extension and refinement",crit:[
       "Correct technique on their preferred side, and improving on the other side.",
       "Holds correct technique for longer before tiring.",
       "Timing is improving, both in the water and on the recovery.",
       "Growing understanding of how the boat moves, and trains regularly."],
-      seats:"Same as XP1. Paired with experienced paddlers where possible.",
+      sum:"Sound on their preferred side, timing improving, training regularly.",seats:"Same as XP1, beside experienced paddlers where possible.",
       src:[["AusDBF Athlete Pathway, Foundation 2",SRC.pathway],["Dragon Boat NSW athlete pathway",SRC.dbnsw]]},
     {n:3,name:"Competent",stage:"AusDBF Foundation 3: commitment to dragon boat",crit:[
       "Paddles at a competitive pace, and is race fit.",
       "Completes race starts.",
       "Fewer errors, with better technique through most or all phases of the stroke.",
       "Sound technique on both sides, and races at local regattas at a sustained pace."],
-      seats:"Row 3 and anywhere further back. Not rows 1–2.",
+      sum:"Race fit, completes race starts, sound on both sides.",seats:"Row 3 or further back. Not rows 1–2.",
       src:[["AusDBF Athlete Pathway, Foundation 3",SRC.pathway],["Dragon Boat NSW athlete pathway",SRC.dbnsw],["AusDBF race-fit requirement (reported by Dragon Flyers club)",SRC.flyers]]},
     {n:4,name:"Experienced",stage:"AusDBF Talent 1: demonstration of potential",crit:[
       "Meets club benchmark standards, and paddles at the right intensity when asked, such as starts.",
       "Paddles correctly with little conscious thought, with few errors.",
       "Knows their dominant side, and gets strong results at local regattas or represents the club at nationals.",
       "Receptive to coaching, keen to improve, and shows self-regulation in training and at regattas."],
-      seats:"Rows 2–3, the back, or anchoring the engine room. Row 1 if ticked Stroke.",
+      sum:"Consistent technique with few errors, and strong local results.",seats:"Rows 2–3, the back, or leading the engine room. Row 1 if ticked Stroke.",
       src:[["AusDBF Athlete Pathway, Talent 1",SRC.pathway],["Dragon Boat NSW athlete pathway",SRC.dbnsw]]},
     {n:5,name:"Lead paddler",stage:"AusDBF Talent 2 and above: talent verification",crit:[
       "Paddles with automatic, correct technique, and adjusts to a different paddling style when asked.",
       "Reads the boat's movement and adapts their technique.",
       "Meets state squad standards, or has state, national or Club Crew World Championship experience.",
       "As a stroke, sets and holds the rate and isn't pushed faster by pressure from behind."],
-      seats:"First choice for row 1 if ticked Stroke, otherwise row 2, anchoring the engine room, or the back.",
+      sum:"Automatic technique, reads the boat, and holds the rate under pressure.",seats:"First choice for row 1 if ticked Stroke. Otherwise row 2, the engine room or the back.",
       src:[["AusDBF Athlete Pathway, Talent 2",SRC.pathway],["Dragon Boat NSW athlete pathway",SRC.dbnsw],["Port Stephens Dragon Boat Club (strokes set the pace)",SRC.psdbc]]}
   ];
   const tiers=[
     ["National: AusDBF",[
       [SRC.pathway,"AusDBF Athlete Pathway (V5, Sept 2022)","Foundation, Talent, Elite and Mastery phases with paddler, sweep and drummer competencies at each phase. Used for the XP1–XP5 criteria. The drummer drums in time with the strokes."],
-      [SRC.safety,"AusDBF Safety Manual (2012, reviewed 2013)","Decide seating before boarding. Seat paddlers of similar weight together. Strokes and drummer board last. Balance the boat left and right and trim it front and back before heading out. Swim 50 m clothed, or wear a PFD."],
-      [SRC.ancas,"AusDBF Coaching Framework (ANCAS V6, June 2024)","Level 1 coaches learn boat loading, balance and trim, and how to create a crew list and seating plan. Talent 1 focus includes team selection and boat placement."],
+      [SRC.safety,"AusDBF Safety Manual (2012, reviewed 2013)","Decide seating before boarding. Seat paddlers of similar weight together. Strokes and drummer board last. Balance the boat left and right, and front and back, before heading out. Swim 50 m clothed, or wear a PFD."],
+      [SRC.ancas,"AusDBF Coaching Framework (ANCAS V6, June 2024)","Level 1 coaches learn boat loading, boat balance, and how to create a crew list and seating plan. Talent 1 focus includes team selection and boat placement."],
       [SRC.t9,"AusDBF T9 Coaching Template: Boat Seat Plan","Coach seat plan sheet: drummer, rows 1–10 left and right, sweep, reserves, and left-side and right-side kg totals. The Seat plan tab mirrors this."]
     ]],
     ["NSW: Dragon Boat NSW",[
@@ -691,79 +690,41 @@ function renderLogic(){
       [SRC.ltp,"Dragon Boat NSW Learn to Paddle training plan (2021)","Session 1 introduces the crew roles (coach, sweep, drummer, strokes) and boat positions, and says to be aware of weight differences when loading."]
     ]],
     ["Other Australian state bodies",[
-      [SRC.dbsa,"Dragon Boats SA New Team Manual","Pair paddlers of similar weight or height. Heavier pairs in the middle. Keep taller crew out of the bow and stern, because of back injury risk."],
+      [SRC.dbsa,"Dragon Boats SA New Team Manual","Pair paddlers of similar weight or height. Heavier pairs in the middle. Keep taller crew out of the front and back rows, because of back injury risk."],
       [SRC.dbv,"Dragon Boat Victoria: How to Dragon Boat","Foundation Phase 1, taken from the AusDBF pathway: safe conduct, getting in and out, posture, paddle connection, timing, boat commands and basic drills."]
     ]],
     ["Australian clubs (not official bodies)",[
-      [SRC.psdbc,"Port Stephens Dragon Boat Club (NSW): Roles in a Dragon Boat","Strokes in seat one set the pace. Pacers sit directly behind them, protect them and pass the timing back. The engine room is the middle eight. The back paddlers are sprinters with an enormous task."],
+      [SRC.psdbc,"Port Stephens Dragon Boat Club (NSW): Roles in a Dragon Boat","Strokes in seat one set the pace. Pacers sit directly behind them, protect them and pass the timing back. The engine room is the middle four rows. The back paddlers are sprinters with an enormous task."],
       [SRC.ccdbc,"Central Coast Dragon Boat Club: How a Crew Works","The strokes, also called pacers, at the front of the boat work together to set the stroke rate."],
       [SRC.flyers,"Dragon Flyers: Levels of Training","Says the AusDBF requires paddlers to be race fit at any level of competition."]
+    ]],
+    ["Planner rules (no Australian source)",[
+      ["","Row 3: XP3+","Keeps new starters out of the first row that picks up the timing."],
+      ["","Engine room leader","At least one XP4–XP5 paddler in the engine room to lead calls."],
+      ["","Empty rows spread out","Tested 13-Oct-26: with 16 paddlers, spreading cut centre-of-weight points from 83 to 3."],
+      ["","New starter seats","Middle or back is a coach setting, as clubs differ."]
     ]],
 
   ];
   // Guide sections, most used first. Phones: collapsed tap rows with a one-line summary. Wider screens: all open, with jump links.
   const secs=[
-    {id:"read",title:"Reading the seat plan",teaser:"Card colours, badges, outlines and the points line.",body:`
+    {id:"method",title:"Seating method and scoring",teaser:"How the planner tests and scores each plan.",body:`
       <ul class="logic-list">
-        <li>Card colour shows weight: pale for lighter, dark red for heavier, in five bands from the lightest to the heaviest paddler in the boat. The key sits under the sweep.</li>
-        <li>The XP1–XP5 badge is the paddler's experience level. On race days, L or R after the weight means that side only.</li>
-        <li>L+8 or R+5 beside a row shows which side of that row is heavier, and by how many kg.</li>
-        <li>On race days, a white dashed outline means a paddler is on the wrong side. A gold outline is the seat you've selected.</li>
-        <li>Beside Re-balance, small grey text shows how many seating configurations were checked and the plan's points against the other runs, e.g. "136,107 configurations checked · best of 8 runs: 86 points (others 87, 87, …)". Fewer points is better.</li>
-        <li><b>Why this plan?</b> under the buttons breaks the points down by rule, worst first, and lists the rules that cost nothing. After a manual swap it re-scores the plan, so you can see whether the change helped.</li>
-        <li>Weights and placement notes stay on this device. The shared plan shows names and seats only.</li>
-      </ul>`},
-    {id:"rules",title:"Seating rules",teaser:"The fixed rules every plan follows.",body:`
-      <ul class="logic-list">
-        <li>Race days only: left-only and right-only paddlers sit on their side. At training, paddlers swap sides through the session, so preferred sides are ignored. Current session type: <span class="setting">${s.sessionType==="race"?"race":"training"}</span>.</li>
-        <li>Rows 1 and 2 are always filled.</li>
-        <li>Paddlers sit in pairs, so empty seats make whole empty rows. With an odd number of paddlers, one row has a single paddler. Where the empty rows go is a coach setting: <span class="setting">${s.emptyRows==="spread"?"spread for balance":"at the back"}</span>.</li>
-        <li>One standard boat: 10 rows, 20 seats. Whoever is drumming or sweeping isn't given a paddling seat.</li>
-        <li>Only people ticked Drum or Sweep on the Roster can be picked as drummer or sweep, unless a name is typed in under Other.</li>
-      </ul>`},
-    {id:"roles",title:"Seat roles",teaser:"Who sits in each part of the boat, and why.",body:`
-      <div class="roster-wrap"><table class="rules">
-        <thead><tr><th>Seats</th><th>Who sits there, and why</th></tr></thead>
-        <tbody>${roles.map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b><br><span class="muted">${r[2]}</span><br><small class="muted">Source: ${r[3].map(x=>x[1]?link(x):x[0]).join("; ")}</small></td></tr>`).join("")}</tbody>
-      </table></div>`},
-    {id:"levels",title:"XP levels",teaser:"What XP1 to XP5 mean, and where each level sits.",body:`
-      <p class="muted">XP1–XP5 follow the AusDBF Athlete Pathway phases, which Dragon Boat NSW has adopted. No Australian body publishes an official 1–5 paddler scale, so where one level ends and the next begins is a coaching judgement, and ACCA coaches have the final say.</p>
-      ${levels.map(l=>`<div class="lvl-crit">
-        <h3><span class="lvl lvl${l.n}">XP${l.n}</span>${l.name}<small>${l.stage}</small></h3>
-        <ul class="logic-list">${l.crit.map(c=>`<li>${c}</li>`).join("")}</ul>
-        <p><b>Seats:</b> ${l.seats}</p>
-        <p class="muted">Based on: ${l.src.map(link).join("; ")}</p>
-      </div>`).join("")}`},
-    {id:"balance",title:"Balance: left/right and front/back",teaser:"Weight targets for each side and from bow to stern.",body:`
-      <ul class="logic-list">
-        <li>Left and right totals within <span class="setting">${tolKg()} kg</span> of each other. The further out, the bigger the penalty.</li>
-        <li>Centre of weight aims for the middle of the boat (row 5.5). Front/Back balance: <span class="setting">${trimTxt}</span>. The drummer's and sweep's weights count when they're chosen: their roster weight, or the weight typed in for someone not on the roster.</li>
-        <li>Row partners of similar weight: every kg between partners counts, and gaps over 10 kg count much more and show as a warning.</li>
-        <li>Short crews: with empty rows at the back the boat runs bow heavy, so the planner moves heavier paddlers back and shows a warning. Choosing <b>Spread for balance</b> lets empty rows sit anywhere from row 3 back to keep the boat level. Current setting: <span class="setting">${s.emptyRows==="spread"?"spread for balance":"at the back"}</span>.</li>
+        <li>Each plan tests thousands of seating configurations, eight times over.</li>
+        <li>Every broken rule adds points. The plan with the fewest points wins.</li>
+        <li>Locked seats never move.</li>
       </ul>
-      <p class="muted">The AusDBF Safety Manual asks for paddlers of similar weight to sit together, and for the boat to be balanced left and right and trimmed front and back before heading out.</p>
-      <div class="row-actions"><button class="btn small" id="toSettings">Change settings</button></div>`},
-    {id:"starters",title:"New starters (XP1–XP2)",teaser:"Where XP1 and XP2 paddlers are placed.",body:`
-      <p>Current setting: placed <span class="setting">${startTxt}</span>.</p>
-      <ul class="logic-list">
-        <li><b>Middle:</b> beside experienced paddlers and close enough to see the strokes. Kept out of rows 8–10, and lightly kept off rows 3 and 7.</li>
-        <li><b>Back:</b> out of the timing line while they learn. Kept off rows 3–7.</li>
-        <li>Two XP1s are never seated side by side if it can be avoided. Two new starters in one row is flagged as a warning.</li>
-      </ul>
-      <p class="muted">AusDBF and Dragon Boat NSW don't say where new starters should sit, and clubs differ, so this is a coach setting.</p>`},
-    {id:"method",title:"Seating method and scoring",teaser:"How the planner searches and scores each plan.",body:`
-      <p>The planner runs thousands of seating configurations for each generated plan and runs this eight times. It scores each arrangement against the rules on this page. Every rule broken adds points, and the arrangement with the fewest points wins. Locked seats never move. Each paddler's XP level follows the criteria under XP levels, and the seat rules use those levels.</p>
       <h3>The method</h3>
-      <p>The planner uses a search method called <b>simulated annealing</b>, named after the way metal is cooled slowly so it settles into a strong structure. Each run starts from a shuffled crew, then repeatedly swaps two seats and checks the score. A swap that lowers the score is kept. Early in a run, a swap that makes things slightly worse is sometimes kept too, so the search doesn't get stuck on a plan that's good but not the best. That allowance fades as the run goes on, until only improvements are kept. Running this eight times from different starting points and keeping the best result makes a poor plan very unlikely.</p>
+      <p>The planner uses a search method called <b>simulated annealing</b>, named after the way metal is cooled slowly so it settles into a strong structure. Each run starts from a shuffled crew, then repeatedly swaps two seats and checks the points. A swap that lowers the points is kept. Early in a run, a swap that makes things slightly worse is sometimes kept too, so the search doesn't get stuck on a plan that's good but not the best. That allowance fades as the run goes on, until only improvements are kept. Running this eight times from different starting points and keeping the best result makes a poor plan very unlikely.</p>
       <p class="muted">It isn't machine learning: the rules are written out on this page, the planner doesn't learn from past plans, and every point it adds can be traced to a named rule.</p>
-      <h3>How the scoring works</h3>
+      <h3>Points</h3>
       <ul class="logic-list">
-        <li>Every arrangement starts at 0 points. Each rule it breaks adds points, and bigger problems add more: a few kg out of balance costs a little, an empty seat in rows 1–2 costs 1,000.</li>
-        <li><b>The lower the score, the better.</b> A lower score means a better-balanced boat with fewer compromises on seat roles and new starters. 0 is the ideal, but a real crew always scores a little, because the rules pull against each other.</li>
-        <li>Each run starts from a different shuffle and keeps swapping seats to lower the score. The planner keeps the best of the eight runs.</li>
-        <li><b>Re-balance</b> runs the whole search again from fresh starting points, keeping any locked seats where they are. It shows how many configurations it checked and the winning score against the other runs, e.g. "best of 8 runs: 80 points (others 82, 87, …)". A plan within a few points of another is just as good; pick whichever suits the coach.</li>
-        <li><b>Why this plan?</b> on the Seat plan shows where the points came from. After a manual swap it re-scores straight away: a higher number means the swap made the boat less balanced or broke a rule.</li>
+        <li>Every plan starts at 0 points. Bigger problems add more points.</li>
+        <li><b>Fewer points is better.</b> A real crew always has some, as rules pull against each other.</li>
+        <li><b>Re-balance</b> reruns the search, keeping locked seats. Plans a few points apart are equally good.</li>
+        <li><b>Why this plan?</b> shows where the points came from, and recounts them after a manual swap.</li>
       </ul>
+      <details class="why"><summary>Show examples</summary>
       <div class="roster-wrap"><table class="rules why-ex">
         <thead><tr><th>Example</th><th>Points</th></tr></thead>
         <tbody>
@@ -774,20 +735,71 @@ function renderLogic(){
           <tr><td>Paddler in row 1 not ticked Stroke</td><td>60</td></tr>
           <tr><td>Empty seat in rows 1–2, or a race-day paddler on the wrong side</td><td>1,000</td></tr>
         </tbody>
-      </table></div>
-      <p class="muted">Only Australian sources are used: AusDBF and Dragon Boat NSW first, then other Australian state bodies, then Australian clubs. Where no Australian source covers a rule, it's marked as a planner rule. Balance figures are guidance, not hard limits, so the coach always has the final say. ACCA's own coaching conventions override anything here.</p>`},
+      </table></div></details>
+      <p class="muted">Australian sources only, AusDBF and Dragon Boat NSW first. ACCA coaches have the final say.</p>`},
+    {id:"rules",title:"Seating rules",teaser:"The fixed rules every plan follows.",body:`
+      <ul class="logic-list">
+        <li>Race days: left-only and right-only paddlers sit on their side. Training: sides are ignored. Now: <span class="setting">${s.sessionType==="race"?"race":"training"}</span>.</li>
+        <li>Rows 1 and 2 are always filled.</li>
+        <li>Paddlers sit in pairs, so empty seats form whole empty rows. Where they go: <span class="setting">${s.emptyRows==="spread"?"spread for balance":"at the back"}</span>.</li>
+        <li>With an odd number of paddlers, one row has a single paddler.</li>
+        <li>One boat: 10 rows, 20 seats. The drummer and sweep don't take paddling seats.</li>
+        <li>Only paddlers ticked Drum or Sweep can drum or sweep, unless a name is typed under Other.</li>
+      </ul>`},
+    {id:"roles",title:"Seat roles",teaser:"Who sits in each part of the boat, and why.",body:`
+      <div class="roster-wrap"><table class="rules">
+        <thead><tr><th>Seats</th><th>Who sits there, and why</th></tr></thead>
+        <tbody>${roles.map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b><br><span class="muted">${r[2]}</span></td></tr>`).join("")}</tbody>
+      </table></div>`},
+    {id:"levels",title:"XP levels",teaser:"What XP1 to XP5 mean, and where each level sits.",body:`
+      <p class="muted">XP1–XP5 follow the AusDBF Athlete Pathway phases, adopted by Dragon Boat NSW. No Australian body publishes an official 1–5 scale, so level boundaries are a coaching call. ACCA coaches decide.</p>
+      ${levels.map(l=>`<div class="lvl-crit">
+        <h3><span class="lvl lvl${l.n}">XP${l.n}</span>${l.name}</h3>
+        <p class="lvl-sum">${l.sum}</p>
+        <p><b>Seats:</b> ${l.seats}</p>
+        <details class="why"><summary>Criteria</summary>
+          <p class="muted">${l.stage}</p>
+          <ul class="logic-list">${l.crit.map(c=>`<li>${c}</li>`).join("")}</ul>
+        </details>
+      </div>`).join("")}`},
+    {id:"balance",title:"Boat balance",teaser:"Weight targets side to side and front to back.",body:`
+      <ul class="logic-list">
+        <li>Left and right within <span class="setting">${tolKg()} kg</span> of each other. The further out, the more points.</li>
+        <li>Centre of weight aims for the middle of the boat (row 5.5). Setting: <span class="setting">${trimTxt}</span>.</li>
+        <li>Drummer and sweep weights count when they're chosen.</li>
+        <li>Row partners should be similar weights. Gaps over 10 kg add many more points and a warning.</li>
+        <li>Short crews: empty rows at the back make the boat front heavy. Spread for balance keeps it level. Now: <span class="setting">${s.emptyRows==="spread"?"spread for balance":"at the back"}</span>.</li>
+      </ul>
+      <div class="row-actions"><button class="btn small" id="toSettings">Change settings</button></div>`},
+    {id:"read",title:"Reading the seat plan",teaser:"Card colours, badges, outlines and the points line.",body:`
+      <ul class="logic-list">
+        <li>Card colour shows weight, in five bands: pale for the lightest paddlers in the boat, dark red for the heaviest. The key sits under the sweep.</li>
+        <li>The XP1–XP5 badge is the paddler's experience level. On race days, L or R after the weight means that paddler sits on that side only.</li>
+        <li>L+8 or R+5 beside a row shows which side of that row is heavier, and by how many kg.</li>
+        <li>Race days: a white dashed outline means a paddler is on the wrong side. A gold outline is the seat you've selected.</li>
+        <li>Beside Re-balance, a short line shows configurations checked, runs and points, e.g. "136K configs · best of 8 runs · 86 pts". Tap it for every run's points. Fewer points is better.</li>
+        <li><b>Why this plan?</b> breaks the points down by rule, worst first, and lists rules that cost nothing. After a manual swap it recounts, so you can see if it helped.</li>
+        <li>Weights and placement notes stay on this device. The shared plan shows names and seats only.</li>
+      </ul>`},
+    {id:"starters",title:"New starters (XP1–XP2)",teaser:"Where XP1 and XP2 paddlers are placed.",body:`
+      <p>Setting: <span class="setting">${startTxt}</span>.</p>
+      <ul class="logic-list">
+        <li><b>Middle:</b> beside experienced paddlers, in sight of the strokes. Kept out of rows 8–10, and mostly off rows 3 and 7.</li>
+        <li><b>Back:</b> out of the timing line while they learn. Kept off rows 3–7.</li>
+        <li>Two XP1s are kept apart where possible. Two new starters in one row triggers a warning.</li>
+      </ul>`},
     {id:"install",title:"Home screen install",teaser:"Install the app on iPhone or Android.",body:`
       <ul class="logic-list">
-        <li><b>iPhone:</b> open this page in Safari, tap Share, then <b>Add to Home Screen</b>.</li>
-        <li><b>Android:</b> open this page in Chrome, tap ⋮, then <b>Install app</b>.</li>
+        <li><b>iPhone:</b> open this page in Safari &gt; tap Share &gt; <b>Add to Home Screen</b>.</li>
+        <li><b>Android:</b> open this page in Chrome &gt; tap ⋮ &gt; <b>Install app</b>.</li>
       </ul>
-      <p class="muted">It then opens full screen from the ACCA Seat Planner icon and works offline. On iPhone, enter your roster in the installed app, as it keeps its own data separate from Safari.</p>`},
+      <p class="muted">It then opens full screen and works offline. On iPhone, the installed app keeps its own roster, separate from Safari.</p>`},
     {id:"sources",title:"Sources",teaser:"Australian sources, in priority order.",body:`
-      <p class="muted">In priority order.</p>
+      <p class="muted">In priority order. Rules with no Australian source are listed last as planner rules.</p>
       ${tiers.map(([tier,list])=>`<h3>${tier}</h3>
       <div class="roster-wrap"><table class="rules src">
-        <thead><tr><th>Source</th><th>What it says about seating</th></tr></thead>
-        <tbody>${list.map(r=>`<tr><td><a href="${r[0]}" target="_blank" rel="noopener">${r[1]}</a></td><td>${r[2]}</td></tr>`).join("")}</tbody>
+        <thead><tr><th>${list[0][0]?"Source":"Rule"}</th><th>${list[0][0]?"What it says about seating":"Why"}</th></tr></thead>
+        <tbody>${list.map(r=>`<tr><td>${r[0]?`<a href="${r[0]}" target="_blank" rel="noopener">${r[1]}</a>`:r[1]}</td><td>${r[2]}</td></tr>`).join("")}</tbody>
       </table></div>`).join("")}`},
   ];
   const phone=lastPhone=PHONE_MQ.matches;
@@ -1015,16 +1027,16 @@ function renderAttend(){
         <div><label for="stype">Session type</label><select id="stype">
           <option value="training" ${s.sessionType!=="race"?"selected":""}>Training: paddlers swap sides</option>
           <option value="race" ${s.sessionType==="race"?"selected":""}>Race: paddlers' preferred side</option></select></div>
-        <div><label for="starters">New starters (Level 1–2)</label><select id="starters">
+        <div><label for="starters">New starters (XP1–XP2)</label><select id="starters">
           <option value="middle" ${s.starters==="middle"?"selected":""}>Middle, beside experienced paddlers</option>
           <option value="back" ${s.starters==="back"?"selected":""}>Back, out of the timing line</option></select></div>
-        <div><label for="trim">Front/Back balance</label><select id="trim">
+        <div><label for="trim">Boat balance</label><select id="trim">
           <option value="neutral" ${s.trim==="neutral"?"selected":""}>Level</option>
-          <option value="bow" ${s.trim==="bow"?"selected":""}>Slightly bow heavy</option>
-          <option value="stern" ${s.trim==="stern"?"selected":""}>Slightly stern heavy</option></select></div>
+          <option value="bow" ${s.trim==="bow"?"selected":""}>Slightly front heavy</option>
+          <option value="stern" ${s.trim==="stern"?"selected":""}>Slightly back heavy</option></select></div>
         <div><label for="tol">Left/right tolerance (kg)</label><select id="tol">${[0,1,2,3,4,5,6,7,8,9,10].map(k=>`<option value="${k}" ${tolKg()===k?"selected":""}>${k} kg</option>`).join("")}</select></div>
         <div><label for="emptyRows">Empty rows (short crews)</label><select id="emptyRows">
-          <option value="back" ${s.emptyRows!=="spread"?"selected":""}>At the back: tidy, may run bow heavy</option>
+          <option value="back" ${s.emptyRows!=="spread"?"selected":""}>At the back: tidy, may run front heavy</option>
           <option value="spread" ${s.emptyRows==="spread"?"selected":""}>Spread for balance: rows 1–2 always full</option></select></div>
         <div><label for="drumSel">Drummer</label><select id="drumSel">${roleOptions("drum","None")}</select>
           ${s.drumSel==="other"?`<input id="drumName" type="text" placeholder="Drummer's name" value="${esc(s.drumName||"")}" style="margin-top:.4rem" aria-label="Drummer's name"><input id="drumKg" type="number" min="0" max="160" placeholder="Weight kg (optional)" value="${esc(s.drumKg||"")}" style="margin-top:.4rem" aria-label="Drummer's weight in kg, optional">`:""}</div>
@@ -1095,11 +1107,14 @@ function seatHTML(i,seats,c,approved,viol){
   </button>`;
 }
 // "best of 8 runs: 80 points (others 81, 81, 82, …)"
+// Short line beside Re-balance ("136K configs · best of 8 runs · 86 pts"); tap for the full figures
 function runsNote(){
-  const rc=state.plan.runCosts; if(!rc||rc.length<2) return "";
-  const pts=n=>Math.round(n).toLocaleString("en-AU");
+  const n=state.plan.scored, rc=state.plan.runCosts||[];
+  const pts=v=>Math.round(v).toLocaleString("en-AU");
   const sorted=rc.slice().sort((a,b)=>a-b);
-  return ` · best of ${rc.length} runs: ${pts(sorted[0])} points (others ${sorted.slice(1).map(pts).join(", ")})`;
+  const short=`${n>=1000?Math.round(n/1000)+"K":n} configs`+(rc.length>1?` · best of ${rc.length} runs · ${pts(sorted[0])} pts`:"");
+  const full=`${n.toLocaleString("en-AU")} seating configurations checked.`+(rc.length>1?` Best of ${rc.length} runs: ${pts(sorted[0])} points. Other runs: ${sorted.slice(1).map(pts).join(", ")}.`:"");
+  return `<details class="runs"><summary>${short}</summary><span>${full}</span></details>`;
 }
 // Points per rule group for the plan as it stands now, worst first, plus the rules that cost nothing
 function whyPlan(seats,c){
@@ -1110,10 +1125,10 @@ function whyPlan(seats,c){
   const best=state.plan.best;
   const edited=best!=null && Math.round(now)!==Math.round(best);
   return `<details class="why"><summary>Why this plan?</summary>
-    <p>Each broken rule adds points; the plan with the fewest points wins. This plan: <b>${pts(now)} points</b>.${edited?` It has been changed by hand since the planner's best of ${pts(best)} points${now<best?", and it now scores better":""}.`:""}</p>
+    <p>Each broken rule adds points; the plan with the fewest points wins. This plan: <b>${pts(now)} points</b>.${edited?` Changed by hand since the planner's best of ${pts(best)} points${now<best?", and it now has fewer points":""}.`:""}</p>
     ${cost.length?`<table class="why-t"><thead><tr><th>Rule</th><th>Points</th></tr></thead><tbody>${cost.map(g=>`<tr><td>${RULES[g]}</td><td>${pts(acc[g])}</td></tr>`).join("")}</tbody></table>`:""}
     ${met.length?`<p class="muted">No points lost: ${met.map(g=>RULES[g]).join(", ")}.</p>`:""}
-    <p class="muted">Lower is better. A few points are normal: no real crew is perfectly matched, so the planner trades rules off against each other. Warnings above show the trade-offs worth a coach's look.</p>
+    <p class="muted">Fewer points is better. A few points are normal, as rules pull against each other. Warnings above flag what's worth a look.</p>
   </details>`;
 }
 function renderPlan(){
@@ -1153,7 +1168,7 @@ function renderPlan(){
       <div class="boat-col">
         ${bar}
         <div class="boat haslogo" aria-label="Boat seating, row 1 at the front">
-          <div class="head">${headArt}Bow</div>
+          <div class="head">${headArt}Front</div>
           <div class="endseat">Drummer${dr?`: <b>${esc(dr.name)}</b>`:""}${c.drummer?` (${c.drummer} kg)`:""}</div>
           ${boat}
           <div class="endseat" style="margin-top:8px">Sweep${sw?`: <b>${esc(sw.name)}</b>`:""}${c.sweep?` (${c.sweep} kg)`:""}</div>
@@ -1173,7 +1188,7 @@ function renderPlan(){
           ${unseated.length?`<h3>Not seated (${unseated.length})</h3><p class="muted" style="margin-top:0">Tap a name, then tap a seat.</p><div class="chips">${unseated.map(id=>`<button class="chip ${ui.pick===id?"sel":""}" data-pick="${id}" ${approved?"disabled":""}>${esc(c.m[id].name)}</button>`).join("")}</div>`:""}
           <div class="row-actions" style="margin-top:1rem">
             ${approved?`<button class="btn primary" id="toShare">Share with the team</button><button class="btn" id="unapprove">Edit again</button>`:
-            `<button class="btn primary" id="approve">Approve plan</button><span class="regen-wrap"><button class="btn" id="regen">Re-balance (keeps locked seats)</button>${state.plan.scored?`<span class="runs">${state.plan.scored.toLocaleString("en-AU")} configurations checked${runsNote()}</span>`:""}</span>${state.plan.locks.some(Boolean)?`<button class="btn" id="unlockAll">Unlock all seats (${state.plan.locks.filter(Boolean).length})</button>`:""}<button class="btn" id="toAttend">Change who's paddling</button>`}
+            `<button class="btn primary" id="approve">Approve plan</button><span class="regen-wrap"><button class="btn" id="regen">Re-balance (keeps locked seats)</button>${state.plan.scored?runsNote():""}</span>${state.plan.locks.some(Boolean)?`<button class="btn" id="unlockAll">Unlock all seats (${state.plan.locks.filter(Boolean).length})</button>`:""}<button class="btn" id="toAttend">Change who's paddling</button>`}
           </div>
           ${whyPlan(seats,c)}
           ${approved?"":`<p class="muted" style="margin-top:.5rem">Tap a seat, then another seat to swap them. Press and hold a seat to lock or unlock it. Locked seats stay put when you re-balance.</p>`}
@@ -1342,7 +1357,7 @@ function drawImage(cv,done){
     g.fillStyle="#1F1F1F"; g.fill();
     // bow: dragon, BOW, DRUMMER
     if(dragon){ const dw=110, dh=dw*dragon.height/dragon.width; g.drawImage(dragon,cx-dw/2,hTop+26,dw,dh); }
-    label("BOW",cx,hTop+104); label(dr?`DRUMMER: ${dr.name.toUpperCase()}`:"DRUMMER",cx,hTop+134,"center",dr?"#FFFFFF":null);
+    label("FRONT",cx,hTop+104); label(dr?`DRUMMER: ${dr.name.toUpperCase()}`:"DRUMMER",cx,hTop+134,"center",dr?"#FFFFFF":null);
     // rows
     const numX=hx0+30, cx0=hx0+52, gap=8, cw=(hx1-24-cx0-gap)/2;
     const zones={1:"STROKES AND FRONT",4:"ENGINE ROOM",8:"BACK"};
