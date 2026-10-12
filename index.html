@@ -80,6 +80,9 @@ main{padding:1rem}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn:focus-visible,input:focus-visible,select:focus-visible,nav button:focus-visible,.seat:focus-visible,.chip:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .row-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.runs{font:500 .72rem var(--label);color:var(--muted);letter-spacing:.02em}
+/* keeps the count with its button: beside it, or just under it on narrow screens */
+.regen-wrap{display:inline-flex;flex-wrap:wrap;align-items:center;column-gap:.5rem;row-gap:.2rem}
 input[type=text],input[type=number],input[type=search],input[type=date],select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:.45rem .5rem;min-height:40px;width:100%}
 input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0}
 :root{color-scheme:light}
@@ -400,7 +403,7 @@ function optimise(prev,locks){
   }
   const freeIdx=[]; for(let i=0;i<SEATS;i++) if(!lk[i]) freeIdx.push(i);
   const pool=att.filter(id=>!placed.has(id));
-  let best=null,bestCost=Infinity;
+  let best=null,bestCost=Infinity, scored=0; // scored = seating configurations checked
   for(let rs=0;rs<4;rs++){
     const s=seats.slice();
     const shuffled=pool.slice().sort(()=>Math.random()-0.5);
@@ -408,20 +411,20 @@ function optimise(prev,locks){
     shuffled.sort((a,b)=>(c.m[b].level-c.m[a].level)+(Math.random()-0.5)*2);
     const order=freeIdx.slice().sort((a,b)=>a-b);
     order.forEach((idx,j)=>{ s[idx]= j<shuffled.length ? shuffled[j] : null; });
-    let cur=evaluate(s,c).cost, local=s.slice(), localCost=cur;
+    let cur=evaluate(s,c).cost, local=s.slice(), localCost=cur; scored++;
     const iters=18000, T0=60;
     for(let it=0;it<iters;it++){
       const T=T0*Math.pow(0.0005,it/iters);
       const a=freeIdx[(Math.random()*freeIdx.length)|0], b=freeIdx[(Math.random()*freeIdx.length)|0];
       if(a===b||s[a]===s[b]) continue;
       [s[a],s[b]]=[s[b],s[a]];
-      const nc=evaluate(s,c).cost;
+      const nc=evaluate(s,c).cost; scored++;
       if(nc<=cur||Math.random()<Math.exp((cur-nc)/T)){ cur=nc; if(cur<localCost){localCost=cur; local=s.slice();} }
       else { [s[a],s[b]]=[s[b],s[a]]; }
     }
     if(localCost<bestCost){ bestCost=localCost; best=local; }
   }
-  return {seats:best,locks:lk};
+  return {seats:best,locks:lk,scored};
 }
 
 /* ---------- reasons & warnings ---------- */
@@ -841,7 +844,7 @@ function renderAttend(){
     setTimeout(()=>{
       const prev=state.plan;
       const r=optimise(prev?prev.seats:null, prev?prev.locks:null);
-      state.plan={seats:r.seats,locks:r.locks,status:"draft"};
+      state.plan={seats:r.seats,locks:r.locks,status:"draft",scored:r.scored};
       save(); setTab("plan");
     },30);
   };
@@ -934,7 +937,7 @@ function renderPlan(){
           ${unseated.length?`<h3>Not seated (${unseated.length})</h3><p class="muted" style="margin-top:0">Tap a name, then tap a seat.</p><div class="chips">${unseated.map(id=>`<button class="chip ${ui.pick===id?"sel":""}" data-pick="${id}" ${approved?"disabled":""}>${esc(c.m[id].name)}</button>`).join("")}</div>`:""}
           <div class="row-actions" style="margin-top:1rem">
             ${approved?`<button class="btn primary" id="toShare">Share with the team</button><button class="btn" id="unapprove">Edit again</button>`:
-            `<button class="btn primary" id="approve">Approve plan</button><button class="btn" id="regen">Re-balance (keeps locked seats)</button>${state.plan.locks.some(Boolean)?`<button class="btn" id="unlockAll">Unlock all seats (${state.plan.locks.filter(Boolean).length})</button>`:""}<button class="btn" id="toAttend">Change who's paddling</button>`}
+            `<button class="btn primary" id="approve">Approve plan</button><span class="regen-wrap"><button class="btn" id="regen">Re-balance (keeps locked seats)</button>${state.plan.scored?`<span class="runs">${state.plan.scored.toLocaleString("en-AU")} configurations checked</span>`:""}</span>${state.plan.locks.some(Boolean)?`<button class="btn" id="unlockAll">Unlock all seats (${state.plan.locks.filter(Boolean).length})</button>`:""}<button class="btn" id="toAttend">Change who's paddling</button>`}
           </div>
           ${approved?"":`<p class="muted" style="margin-top:.5rem">Tap a seat, then another seat to swap them. Press and hold a seat to lock or unlock it. Locked seats stay put when you re-balance.</p>`}
         </div>
@@ -979,7 +982,7 @@ function renderPlan(){
   if(q("unlockAll")) q("unlockAll").onclick=()=>{ state.plan.locks=state.plan.locks.map(()=>false); save(); renderPlan(); toast("All seats unlocked"); };
   if(q("regen")) q("regen").onclick=()=>{
     const b=q("regen"); b.disabled=true; b.textContent="Balancing the boat…";
-    setTimeout(()=>{ const r=optimise(state.plan.seats,state.plan.locks); state.plan.seats=r.seats; state.plan.locks=r.locks; ui.sel=null; save(); renderPlan(); toast("Re-balanced"); },30);
+    setTimeout(()=>{ const r=optimise(state.plan.seats,state.plan.locks); state.plan.seats=r.seats; state.plan.locks=r.locks; state.plan.scored=r.scored; ui.sel=null; save(); renderPlan(); toast("Re-balanced"); },30);
   };
   if(q("toAttend")) q("toAttend").onclick=()=>setTab("attend");
   if(q("toShare")) q("toShare").onclick=()=>setTab("share");
