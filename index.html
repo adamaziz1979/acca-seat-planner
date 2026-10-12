@@ -83,6 +83,13 @@ main{padding:1rem}
 .runs{font:500 .72rem var(--label);color:var(--muted);letter-spacing:.02em}
 /* keeps the count with its button: beside it, or just under it on narrow screens */
 .regen-wrap{display:inline-flex;flex-wrap:wrap;align-items:center;column-gap:.5rem;row-gap:.2rem}
+.why{margin-top:.6rem;font-size:.85rem}
+.why summary{cursor:pointer;font:500 .72rem var(--label);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.why p{margin:.4rem 0}
+.why-t{border-collapse:collapse;width:100%;max-width:360px;margin:.3rem 0}
+.why-t th{text-align:left;font:500 .66rem var(--label);text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);padding:.2rem .3rem}
+.why-t td{padding:.2rem .3rem;border-bottom:1px solid var(--line)}
+.why-t td:last-child,.why-t th:last-child{text-align:right;font-variant-numeric:tabular-nums}
 input[type=text],input[type=number],input[type=search],input[type=date],select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:.45rem .5rem;min-height:40px;width:100%}
 input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0}
 :root{color-scheme:light}
@@ -285,7 +292,7 @@ function freshState(){
     tab:"roster",
     roster:SAMPLE.map(p=>({...p})),
     attending:SAMPLE.slice(0,18).map(p=>p.id),
-    settings:{sessionType:"training",starters:"middle",trim:"neutral",drumSel:"",drumName:"",drumKg:"",sweepSel:"",sweepName:"",sweepKg:"",tol:5,sessionDate:isoToday(),session:todayLabel()},
+    settings:{sessionType:"training",emptyRows:"back",starters:"middle",trim:"neutral",drumSel:"",drumName:"",drumKg:"",sweepSel:"",sweepName:"",sweepKg:"",tol:5,sessionDate:isoToday(),session:todayLabel()},
     plan:null,
     sample:true
   };
@@ -295,7 +302,7 @@ try{ const raw=localStorage.getItem(KEY); state=raw?JSON.parse(raw):null; }catch
 if(!state||!Array.isArray(state.roster)) state=freshState();
 // An unedited sample roster saved before a sample field existed picks up the current sample values
 if(state.sample) state.roster.forEach(p=>{ const sp=SAMPLE.find(x=>x.id===p.id&&x.name===p.name); if(sp){ p.engine=sp.engine; p.canSweep=sp.canSweep; p.canDrum=sp.canDrum; } });
-state.settings=Object.assign({sessionType:"training",starters:"middle",trim:"neutral",drumSel:"",drumName:"",drumKg:"",sweepSel:"",sweepName:"",sweepKg:"",tol:5,session:todayLabel()},state.settings||{});
+state.settings=Object.assign({sessionType:"training",emptyRows:"back",starters:"middle",trim:"neutral",drumSel:"",drumName:"",drumKg:"",sweepSel:"",sweepName:"",sweepKg:"",tol:5,session:todayLabel()},state.settings||{});
 // Old saves kept drummer/sweep as typed weights only; those are replaced by the role pickers
 delete state.settings.drummer; delete state.settings.sweep;
 // Left/right tolerance: whole kg from 0 to 10 (0 is a real setting, not "use the default")
@@ -345,49 +352,61 @@ function ctx(){
   const lean = s.trim==="bow" ? -0.25 : s.trim==="stern" ? 0.25 : 0;
   return {m, med:median(att.map(id=>+m[id].weight||0)), s, target:5.5+lean, drummer:(crewRole("drum")||{}).kg||0, sweep:(crewRole("sweep")||{}).kg||0, race:s.sessionType==="race"};
 }
-function seatCost(p,row,side,c){
+// Rule groups for the "Why this plan?" breakdown
+const RULES={side:"Preferred sides (race days)",front:"Strokes and front rows",place:"Weight and Engine placement",starters:"New starters' seats",partners:"Row partners' weights",pairs:"New starters side by side",lead:"Engine room leader",lr:"Left/right balance",trim:"Front/back balance",empty:"Empty seats and half-filled rows"};
+function seatCost(p,row,side,c,acc){
   let k=0; const lv=+p.level||1, w=+p.weight||0;
+  const add=(g,v)=>{ if(!v) return; k+=v; if(acc) acc[g]=(acc[g]||0)+v; };
   // Side preferences only apply on race days; at training paddlers swap sides through the session
-  if(c.race&&p.side==="L"&&side!==0) k+=1000;
-  if(c.race&&p.side==="R"&&side!==1) k+=1000;
-  if(row===1){ if(!p.stroke) k+=60; if(lv<4) k+=40; else if(lv===4) k+=8; } // L5 lead paddlers preferred as strokes
-  if(row===2){ if(lv<4) k+=30; if(lv<=2) k+=60; }
-  if(row===3 && lv<=2) k+=25; // fronts must stay in stroke: XP3+ (outranks pairing two new starters)
-  if(row<=3 && w>c.med) k+=(w-c.med)*0.4;
-  if(row>=4 && row<=7 && w<c.med) k+=(c.med-w)*0.4;
-  if(p.engine && (row<4 || row>7)) k+=15;
+  if(c.race&&p.side==="L"&&side!==0) add("side",1000);
+  if(c.race&&p.side==="R"&&side!==1) add("side",1000);
+  if(row===1){ if(!p.stroke) add("front",60); if(lv<4) add("front",40); else if(lv===4) add("front",8); } // L5 lead paddlers preferred as strokes
+  if(row===2){ if(lv<4) add("front",30); if(lv<=2) add("front",60); }
+  if(row===3 && lv<=2) add("front",25); // fronts must stay in stroke: XP3+ (outranks pairing two new starters)
+  if(row<=3 && w>c.med) add("place",(w-c.med)*0.4);
+  if(row>=4 && row<=7 && w<c.med) add("place",(c.med-w)*0.4);
+  if(p.engine && (row<4 || row>7)) add("place",15);
   if(c.s.starters==="middle"){
-    if(lv<=2){ if(row===3) k+=8; else if(row===7) k+=5; else if(row>=8) k+=25; }
-    if(row>=8 && lv>=3 && p.rocket) k-=0; else if(row>=8 && !p.rocket && lv<4) k+=6;
+    if(lv<=2){ if(row===3) add("starters",8); else if(row===7) add("starters",5); else if(row>=8) add("starters",25); }
+    if(row>=8 && !p.rocket && lv<4 && !(lv>=3&&p.rocket)) add("starters",6);
   } else {
-    if(lv<=2){ if(row>=3 && row<=7) k+=15; }
-    if(row>=8 && lv>=4 && !p.rocket) k+=4;
+    if(lv<=2){ if(row>=3 && row<=7) add("starters",15); }
+    if(row>=8 && lv>=4 && !p.rocket) add("starters",4);
   }
   return k;
 }
-function evaluate(seats,c){
+function evaluate(seats,c,acc){
   let L=0,R=0,mom=c.drummer*0+c.sweep*11,tw=c.drummer+c.sweep,k=0;
+  const add=(g,v)=>{ if(!v) return; k+=v; if(acc) acc[g]=(acc[g]||0)+v; };
   for(let i=0;i<SEATS;i++){
     const id=seats[i], row=rowOf(i), s=sideOf(i);
-    if(!id){ k+= row<=2 ? 1000 : (10-row)*3; continue; }
+    if(!id){ add("empty", row<=2 ? 1000 : (c.s.emptyRows==="spread" ? 0 : (10-row)*3)); continue; }
     const p=c.m[id], w=+p.weight||0;
     if(s===0) L+=w; else R+=w;
     mom+=w*row; tw+=w;
-    k+=seatCost(p,row,s,c);
+    k+=seatCost(p,row,s,c,acc);
   }
   for(let r=1;r<=ROWS;r++){
     const a=seats[2*r-2], b=seats[2*r-1];
+    // A paddler alone in a row has no partner to balance against: keep rows full, empties together at the back
+    if(!!a!==!!b) add("empty",40+(10-r)*4);
     if(a&&b){
-      const d=Math.abs((+c.m[a].weight||0)-(+c.m[b].weight||0)); k+=d*0.25; if(d>10) k+=(d-10)*2; // AusDBF Safety Manual: similar weight side by side
+      const d=Math.abs((+c.m[a].weight||0)-(+c.m[b].weight||0)); add("partners",d*0.25); if(d>10) add("partners",(d-10)*2); // AusDBF Safety Manual: similar weight side by side
       const la=+c.m[a].level||1, lb=+c.m[b].level||1;
-      if(la===1 && lb===1) k+=30; else if(la<=2 && lb<=2) k+=22;
+      if(la===1 && lb===1) add("pairs",30); else if(la<=2 && lb<=2) add("pairs",22);
     }
   }
+  // Empty rows. "back": no empty seat in front of an occupied row, so empties are the very last seats.
+  // "spread": empty rows may sit anywhere from row 3 back, to help front/back balance (rows 1-2 are always filled by the rule above).
+  if(c.s.emptyRows!=="spread"){
+    let lastRow=0; for(let i=0;i<SEATS;i++) if(seats[i]) lastRow=rowOf(i);
+    for(let i=0;i<SEATS;i++) if(!seats[i] && rowOf(i)<lastRow) add("empty",100);
+  }
   // Engine room needs at least one Level 4-5 paddler to lead calls such as a power series
-  if(!seats.slice(6,14).some(id=>id&&+c.m[id].level>=4)) k+=25;
-  const diff=Math.abs(L-R); k+=diff*diff*0.3;
+  if(!seats.slice(6,14).some(id=>id&&+c.m[id].level>=4)) add("lead",25);
+  const diff=Math.abs(L-R); add("lr",diff*diff*0.3);
   const com = tw? mom/tw : 5.5;
-  k+=Math.pow((com-c.target)*10,2)*1.5;
+  add("trim",Math.pow((com-c.target)*10,2)*1.5);
   return {cost:k,L,R,com};
 }
 function optimise(prev,locks){
@@ -403,8 +422,8 @@ function optimise(prev,locks){
   }
   const freeIdx=[]; for(let i=0;i<SEATS;i++) if(!lk[i]) freeIdx.push(i);
   const pool=att.filter(id=>!placed.has(id));
-  let best=null,bestCost=Infinity, scored=0; // scored = seating configurations checked
-  for(let rs=0;rs<4;rs++){
+  let best=null,bestCost=Infinity, scored=0, runCosts=[]; // scored = seating configurations checked; runCosts = each run's best score
+  for(let rs=0;rs<8;rs++){ // 8 runs: tested 12-Oct-26, more consistent than 4 and still under a second on phones
     const s=seats.slice();
     const shuffled=pool.slice().sort(()=>Math.random()-0.5);
     // seed: front-to-back by experience so annealing starts near sensible
@@ -422,9 +441,10 @@ function optimise(prev,locks){
       if(nc<=cur||Math.random()<Math.exp((cur-nc)/T)){ cur=nc; if(cur<localCost){localCost=cur; local=s.slice();} }
       else { [s[a],s[b]]=[s[b],s[a]]; }
     }
+    runCosts.push(localCost);
     if(localCost<bestCost){ bestCost=localCost; best=local; }
   }
-  return {seats:best,locks:lk,scored};
+  return {seats:best,locks:lk,scored,runCosts,best:bestCost};
 }
 
 /* ---------- reasons & warnings ---------- */
@@ -468,6 +488,8 @@ function warnings(seats,c,ev){
   if(c.race) seats.forEach((id,i)=>{ if(!id) return; const p=c.m[id]; if((p.side==="L"&&sideOf(i)!==0)||(p.side==="R"&&sideOf(i)!==1)) w.push(`${p.name} paddles ${p.side==="L"?"left":"right"} only but is seated on the ${sideName(sideOf(i)).toLowerCase()}.`); });
   for(let r=1;r<=ROWS;r++){ const a=seats[2*r-2],b=seats[2*r-1]; if(a&&b){ const g=Math.round(Math.abs((+c.m[a].weight||0)-(+c.m[b].weight||0))); if(g>10) w.push(`Row ${r}: partners are ${g} kg apart (${c.m[a].name} and ${c.m[b].name}). AusDBF advises seating paddlers of similar weight together.`); } }
   for(let r=1;r<=ROWS;r++){ const a=seats[2*r-2],b=seats[2*r-1]; if(a&&b&&+c.m[a].level<=2&&+c.m[b].level<=2) w.push(`Row ${r}: two new starters side by side (${c.m[a].name} and ${c.m[b].name}).`); }
+  const halfRows=[]; for(let r=1;r<=ROWS;r++){ if(!!seats[2*r-2]!==!!seats[2*r-1]) halfRows.push(r); }
+  if(halfRows.length>seats.filter(Boolean).length%2) w.push(`Rows ${halfRows.join(" and ")} each have one paddler. Pair them in one row${state.settings.emptyRows==="spread"?"":" and leave the empty seats together at the back"}.`);
   [4,5].forEach(i=>{ const id=seats[i]; if(id&&+c.m[id].level<=2) w.push(`Row 3: ${c.m[id].name} is ${lvName(+c.m[id].level)}; front paddlers must stay in stroke, so Level 3+ suits row 3.`); });
   if(seats.filter(id=>id&&+c.m[id].level>=4).length>=5 && !seats.slice(6,14).some(id=>id&&+c.m[id].level>=4)) w.push("No Level 4–5 paddler in the engine room (rows 4–7) to lead calls such as a power series.");
   const diff=Math.round(Math.abs(ev.L-ev.R)); const tol=tolKg();
@@ -517,7 +539,7 @@ function renderLogic(){
     ["Rows 8–10","Ticked Rocket, and skilled paddlers","The water at the back is already moving and harder to paddle in.",[["Dragon Boat Canada",SRC.dbc]]],
     ["Row partners","Paddlers of similar weight side by side","Keeps each row, and the boat, balanced.",
       [["AusDBF Safety Manual",SRC.safety],["Dragon Boats SA",SRC.dbsa]]],
-    ["Empty seats","Go to the back","So the front rows always stay full.",[["Planner rule",""]]]
+    ["Empty seats","Paddlers fill rows in pairs, leaving whole empty rows. Coach setting: at the back, or spread for balance (rows 1–2 always full)","Every paddler has a partner to balance against. At the back keeps the boat tidy but a short crew runs bow heavy. Spreading the empty rows keeps the boat level; the planner often leaves row 3 empty, behind the strokes and row 2. Current setting: "+(s.emptyRows==="spread"?"spread for balance":"at the back")+".",[["Planner rule (tested 13-Oct-26: with 16 paddlers, spreading cut front/back balance points from 83 to 3)",""]]]
   ];
   // Experience levels map onto the AusDBF Athlete Pathway phases (adopted by Dragon Boat NSW).
   // No official body publishes a 1–5 paddler scale; the boundaries between levels are a coaching judgement.
@@ -580,7 +602,7 @@ function renderLogic(){
   main.innerHTML=`
     <div class="panel">
       <h2>How the planner seats the boat</h2>
-      <p>The planner runs thousands of seating configurations for each generated plan and runs this four times. It scores each arrangement against the rules on this page. Every rule broken adds points, and the arrangement with the fewest points wins. Locked seats never move. Each paddler's XP level follows the criteria under Experience levels below, and the seat rules use those levels.</p>
+      <p>The planner runs thousands of seating configurations for each generated plan and runs this eight times. It scores each arrangement against the rules on this page. Every rule broken adds points, and the arrangement with the fewest points wins. Locked seats never move. Each paddler's XP level follows the criteria under Experience levels below, and the seat rules use those levels.</p>
       <p class="muted">Sources are used in this order: AusDBF and Dragon Boat NSW first, then other Australian state bodies, then international bodies where Australian sources are silent. Balance figures are guidance, not hard limits, so the coach always has the final say. ACCA's own coaching conventions override anything here.</p>
     </div>
     <div class="panel">
@@ -812,6 +834,9 @@ function renderAttend(){
           <option value="bow" ${s.trim==="bow"?"selected":""}>Slightly bow heavy</option>
           <option value="stern" ${s.trim==="stern"?"selected":""}>Slightly stern heavy</option></select></div>
         <div><label for="tol">Left/right tolerance (kg)</label><select id="tol">${[0,1,2,3,4,5,6,7,8,9,10].map(k=>`<option value="${k}" ${tolKg()===k?"selected":""}>${k} kg</option>`).join("")}</select></div>
+        <div><label for="emptyRows">Empty rows (short crews)</label><select id="emptyRows">
+          <option value="back" ${s.emptyRows!=="spread"?"selected":""}>At the back: tidy, may run bow heavy</option>
+          <option value="spread" ${s.emptyRows==="spread"?"selected":""}>Spread for balance: rows 1–2 always full</option></select></div>
         <div><label for="drumSel">Drummer</label><select id="drumSel">${roleOptions("drum","None")}</select>
           ${s.drumSel==="other"?`<input id="drumName" type="text" placeholder="Drummer's name" value="${esc(s.drumName||"")}" style="margin-top:.4rem" aria-label="Drummer's name"><input id="drumKg" type="number" min="0" max="160" placeholder="Weight kg (optional)" value="${esc(s.drumKg||"")}" style="margin-top:.4rem" aria-label="Drummer's weight in kg, optional">`:""}</div>
         <div><label for="sweepSel">Sweep</label><select id="sweepSel">${roleOptions("sweep","Not set")}</select>
@@ -834,7 +859,7 @@ function renderAttend(){
   document.getElementById("allOff").onclick=()=>{ state.attending=[]; save(); renderAttend(); };
   const bind=(id,key,num)=>{ document.getElementById(id).addEventListener("change",e=>{ s[key]=num?(e.target.value===""?"":+e.target.value):e.target.value; save(); if(key==="session") render(); }); };
   document.getElementById("sess").addEventListener("change",e=>{ s.sessionDate=e.target.value||isoToday(); s.session=dateLabel(s.sessionDate); save(); render(); });
-  bind("stype","sessionType"); bind("starters","starters"); bind("trim","trim"); bind("tol","tol",true); ["drum","sweep"].forEach(r=>{
+  bind("stype","sessionType"); bind("starters","starters"); bind("trim","trim"); bind("tol","tol",true); bind("emptyRows","emptyRows"); ["drum","sweep"].forEach(r=>{
     document.getElementById(r+"Sel").addEventListener("change",e=>{ s[r+"Sel"]=e.target.value; save(); renderAttend(); });
     const nm=document.getElementById(r+"Name"); if(nm) nm.addEventListener("change",e=>{ s[r+"Name"]=e.target.value.trim(); save(); });
     const kg=document.getElementById(r+"Kg"); if(kg) kg.addEventListener("change",e=>{ s[r+"Kg"]=e.target.value===""?"":+e.target.value; save(); });
@@ -844,7 +869,7 @@ function renderAttend(){
     setTimeout(()=>{
       const prev=state.plan;
       const r=optimise(prev?prev.seats:null, prev?prev.locks:null);
-      state.plan={seats:r.seats,locks:r.locks,status:"draft",scored:r.scored};
+      state.plan={seats:r.seats,locks:r.locks,status:"draft",scored:r.scored,runCosts:r.runCosts,best:r.best};
       save(); setTab("plan");
     },30);
   };
@@ -879,6 +904,28 @@ function seatHTML(i,seats,c,approved,viol){
     ${locked?`<span class="lk">${LOCK_SVG}</span>`:""}
     ${p?`<span class="nm">${esc(p.name)}</span><span class="sb"><span class="lvl lvl${p.level}" title="XP ${p.level}: ${LEVEL_NAMES[p.level]||""}">XP${p.level}</span>${p.weight} kg${c.race&&p.side!=="E"?` ${p.side}`:""}</span>`:`<span class="nm" style="font-weight:600">Empty</span><span class="sb">${ui.pick?"Tap to place":"&nbsp;"}</span>`}
   </button>`;
+}
+// "best of 8 runs: 80 points (others 81, 81, 82, …)"
+function runsNote(){
+  const rc=state.plan.runCosts; if(!rc||rc.length<2) return "";
+  const pts=n=>Math.round(n).toLocaleString("en-AU");
+  const sorted=rc.slice().sort((a,b)=>a-b);
+  return ` · best of ${rc.length} runs: ${pts(sorted[0])} points (others ${sorted.slice(1).map(pts).join(", ")})`;
+}
+// Points per rule group for the plan as it stands now, worst first, plus the rules that cost nothing
+function whyPlan(seats,c){
+  const acc={}; const now=evaluate(seats,c,acc).cost;
+  const pts=n=>Math.round(n).toLocaleString("en-AU");
+  const cost=Object.keys(acc).filter(g=>Math.round(acc[g])>0).sort((a,b)=>acc[b]-acc[a]);
+  const met=Object.keys(RULES).filter(g=>!(Math.round(acc[g]||0)>0) && !(g==="side"&&!c.race));
+  const best=state.plan.best;
+  const edited=best!=null && Math.round(now)!==Math.round(best);
+  return `<details class="why"><summary>Why this plan?</summary>
+    <p>Each broken rule adds points; the plan with the fewest points wins. This plan: <b>${pts(now)} points</b>.${edited?` It has been changed by hand since the planner's best of ${pts(best)} points${now<best?", and it now scores better":""}.`:""}</p>
+    ${cost.length?`<table class="why-t"><thead><tr><th>Rule</th><th>Points</th></tr></thead><tbody>${cost.map(g=>`<tr><td>${RULES[g]}</td><td>${pts(acc[g])}</td></tr>`).join("")}</tbody></table>`:""}
+    ${met.length?`<p class="muted">No points lost: ${met.map(g=>RULES[g]).join(", ")}.</p>`:""}
+    <p class="muted">Lower is better. A few points are normal: no real crew is perfectly matched, so the planner trades rules off against each other. Warnings above show the trade-offs worth a coach's look.</p>
+  </details>`;
 }
 function renderPlan(){
   if(!state.plan){ main.innerHTML=`<div class="panel empty-state"><h2>No plan yet</h2><p>Tick who's paddling, then build a draft plan.</p><button class="btn primary" id="go">Go to Who's paddling</button></div>`; document.getElementById("go").onclick=()=>setTab("attend"); return; }
@@ -937,8 +984,9 @@ function renderPlan(){
           ${unseated.length?`<h3>Not seated (${unseated.length})</h3><p class="muted" style="margin-top:0">Tap a name, then tap a seat.</p><div class="chips">${unseated.map(id=>`<button class="chip ${ui.pick===id?"sel":""}" data-pick="${id}" ${approved?"disabled":""}>${esc(c.m[id].name)}</button>`).join("")}</div>`:""}
           <div class="row-actions" style="margin-top:1rem">
             ${approved?`<button class="btn primary" id="toShare">Share with the team</button><button class="btn" id="unapprove">Edit again</button>`:
-            `<button class="btn primary" id="approve">Approve plan</button><span class="regen-wrap"><button class="btn" id="regen">Re-balance (keeps locked seats)</button>${state.plan.scored?`<span class="runs">${state.plan.scored.toLocaleString("en-AU")} configurations checked</span>`:""}</span>${state.plan.locks.some(Boolean)?`<button class="btn" id="unlockAll">Unlock all seats (${state.plan.locks.filter(Boolean).length})</button>`:""}<button class="btn" id="toAttend">Change who's paddling</button>`}
+            `<button class="btn primary" id="approve">Approve plan</button><span class="regen-wrap"><button class="btn" id="regen">Re-balance (keeps locked seats)</button>${state.plan.scored?`<span class="runs">${state.plan.scored.toLocaleString("en-AU")} configurations checked${runsNote()}</span>`:""}</span>${state.plan.locks.some(Boolean)?`<button class="btn" id="unlockAll">Unlock all seats (${state.plan.locks.filter(Boolean).length})</button>`:""}<button class="btn" id="toAttend">Change who's paddling</button>`}
           </div>
+          ${whyPlan(seats,c)}
           ${approved?"":`<p class="muted" style="margin-top:.5rem">Tap a seat, then another seat to swap them. Press and hold a seat to lock or unlock it. Locked seats stay put when you re-balance.</p>`}
         </div>
         <div class="panel">
@@ -982,7 +1030,7 @@ function renderPlan(){
   if(q("unlockAll")) q("unlockAll").onclick=()=>{ state.plan.locks=state.plan.locks.map(()=>false); save(); renderPlan(); toast("All seats unlocked"); };
   if(q("regen")) q("regen").onclick=()=>{
     const b=q("regen"); b.disabled=true; b.textContent="Balancing the boat…";
-    setTimeout(()=>{ const r=optimise(state.plan.seats,state.plan.locks); state.plan.seats=r.seats; state.plan.locks=r.locks; state.plan.scored=r.scored; ui.sel=null; save(); renderPlan(); toast("Re-balanced"); },30);
+    setTimeout(()=>{ const r=optimise(state.plan.seats,state.plan.locks); state.plan.seats=r.seats; state.plan.locks=r.locks; state.plan.scored=r.scored; state.plan.runCosts=r.runCosts; state.plan.best=r.best; ui.sel=null; save(); renderPlan(); toast("Re-balanced"); },30);
   };
   if(q("toAttend")) q("toAttend").onclick=()=>setTab("attend");
   if(q("toShare")) q("toShare").onclick=()=>setTab("share");
