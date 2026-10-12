@@ -1,0 +1,17 @@
+{
+  "name": "Dragon boat seat planner",
+  "short_name": "Seat planner",
+  "description": "Build a balanced seating plan for one dragon boat. Works offline at the dock.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1F1F1F",
+  "theme_color": "#ED1C24",
+  "lang": "en-AU",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

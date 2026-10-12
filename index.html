@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dragon boat seat planner</title>
+<meta name="theme-color" content="#ED1C24">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Seat planner">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;900&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#ED1C24; --char:#4F4F4F;
+  --water:#1F1F1F; --water-2:#4F4F4F; --lacquer:#D0141B; --gold:#E0A526;
+  --bg:#EEEEEE; --surface:#FFFFFF; --ink:#1F1F1F; --muted:#5E5E5E; --line:#D9D9D9;
+  --hull:#1F1F1F; --bench:#F7F4EC; --ok:#2E7D5B; --warn:#D0141B; --sel:#E0A526;
+  --l1:#EEEEEE; --l2:#D6D6D6; --l3:#A6A6A6; --l4:#4F4F4F; --l5:#1F1F1F;
+  --h1:#FDE8E8; --h2:#F9B4B6; --h3:#F2707A; --h4:#D81E27; --h5:#8E0E14;
+  --hi1:#1F1F1F; --hi2:#1F1F1F; --hi3:#1F1F1F; --hi4:#FFFFFF; --hi5:#FFFFFF;
+  --font:"Source Sans 3","Source Sans Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --label:Roboto,system-ui,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#121212; --surface:#1E1E1E; --ink:#EEEEEE; --muted:#B0B0B0; --line:#363636;
+    --hull:#0A0A0A; --bench:#2B2B2B; --water:#EEEEEE; --water-2:#BDBDBD; --lacquer:#E3222A; --warn:#FF5A5F;
+    --l1:#333333; --l2:#4A4A4A; --l3:#6E6E6E; --l4:#BDBDBD; --l5:#EEEEEE;
+    --h1:#FDE8E8; --h2:#F9B4B6; --h3:#F2707A; --h4:#D81E27; --h5:#8E0E14;
+    --hi1:#1F1F1F; --hi2:#1F1F1F; --hi3:#1F1F1F; --hi4:#FFFFFF; --hi5:#FFFFFF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121212; --surface:#1E1E1E; --ink:#EEEEEE; --muted:#B0B0B0; --line:#363636;
+    --hull:#0A0A0A; --bench:#2B2B2B; --water:#EEEEEE; --water-2:#BDBDBD; --lacquer:#E3222A; --warn:#FF5A5F;
+    --l1:#333333; --l2:#4A4A4A; --l3:#6E6E6E; --l4:#BDBDBD; --l5:#EEEEEE;
+    --h1:#FDE8E8; --h2:#F9B4B6; --h3:#F2707A; --h4:#D81E27; --h5:#8E0E14;
+    --hi1:#1F1F1F; --hi2:#1F1F1F; --hi3:#1F1F1F; --hi4:#FFFFFF; --hi5:#FFFFFF;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--font)}
+h1,h2,h3,.cond{font-family:var(--font);text-transform:uppercase}
+h1{font-size:1.75rem;line-height:1;margin:0;font-weight:900;letter-spacing:0}
+h2{font-size:1.35rem;margin:0 0 .5rem;font-weight:900;color:var(--water-2)}
+h3{font-size:1.05rem;margin:1.25rem 0 .5rem;font-weight:900;color:var(--water-2)}
+p{margin:.25rem 0 .75rem;max-width:68ch}
+.muted{color:var(--muted)}
+header{background:var(--red);color:#fff;padding:.85rem 1rem 0}
+.brand{display:flex;align-items:center;gap:.75rem}
+.brand img{width:56px;height:auto;flex:none}
+.brand small{display:block;font:500 .78rem var(--label);text-transform:uppercase;letter-spacing:.08em;opacity:.95;margin-top:.3rem}
+nav{background:#1F1F1F;margin-top:.85rem;box-shadow:0 0 0 100vmax #1F1F1F;clip-path:inset(0 -100vmax)}
+:root[data-theme="dark"] header{background:#B5121A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) header{background:#B5121A}}
+.wrap{max-width:1080px;margin:0 auto}
+.title-row{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.title-row small{opacity:.8}
+nav{display:flex;gap:.25rem;overflow-x:auto}
+nav button{flex:1 0 auto;background:transparent;color:#BDBDBD;border:0;border-bottom:3px solid transparent;padding:.7rem .75rem;font:500 .85rem var(--label);text-transform:uppercase;letter-spacing:.08em;cursor:pointer}
+nav button[aria-current="page"]{color:#fff;border-bottom-color:var(--red)}
+nav button .n{display:inline-grid;place-items:center;width:1.6em;height:1.6em;border-radius:50%;background:rgba(255,255,255,.15);margin-right:.4em;font-size:.85em;letter-spacing:0}
+nav button[aria-current="page"] .n{background:var(--red);color:#fff}
+main{padding:1rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--red);border-radius:4px;padding:1rem;margin-bottom:1rem}
+.btn{appearance:none;border:1px solid var(--water);background:var(--surface);color:var(--water);padding:.55rem .9rem;border-radius:4px;font:700 .95rem var(--font);cursor:pointer;min-height:44px}
+.btn.primary{background:var(--lacquer);border-color:var(--lacquer);color:#fff}
+.btn.small{min-height:36px;padding:.35rem .65rem;font-size:.9rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,input:focus-visible,select:focus-visible,nav button:focus-visible,.seat:focus-visible,.chip:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.row-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+input[type=text],input[type=number],input[type=search],select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:.45rem .5rem;min-height:40px;width:100%}
+textarea{min-height:8rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
+label.inline{display:flex;align-items:center;gap:.4rem;cursor:pointer}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--lacquer)}
+
+/* roster */
+.roster{width:100%;border-collapse:collapse}
+.roster-wrap{overflow-x:auto;position:relative}
+.roster th{text-align:left;font:500 .72rem var(--label);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:.4rem .35rem;border-bottom:1px solid var(--line);white-space:nowrap}
+.roster td{padding:.3rem .35rem;border-bottom:1px solid var(--line);vertical-align:middle}
+.roster td.c,.roster th.c{text-align:center}
+.roster th.grp{text-align:center;border-bottom:2px solid var(--red);padding-bottom:.2rem}
+.roster thead th[rowspan]{vertical-align:bottom}
+.roster input[type=number]{width:5.2rem}
+.roster select{width:auto}
+.roster .name{min-width:9rem}
+
+/* attendance */
+.att-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.4rem;margin-top:.75rem}
+.att{display:flex;align-items:center;gap:.6rem;padding:.55rem .65rem;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--surface)}
+.att.on{border-color:var(--red);background:#FDEEEE;background:color-mix(in srgb,var(--red) 7%,var(--surface))}
+.att .meta{color:var(--muted);font-size:.85rem}
+.count{font:900 1.6rem var(--font)}
+.count.bad{color:var(--warn)}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.75rem}
+.settings label{display:block;font-size:.9rem;color:var(--muted);margin-bottom:.2rem}
+
+/* plan */
+.plan-layout{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:1rem;align-items:start}
+@media (max-width:820px){.plan-layout{grid-template-columns:1fr}}
+.status{display:inline-block;padding:.2rem .6rem;border-radius:3px;font:500 .72rem var(--label);text-transform:uppercase;letter-spacing:.06em}
+.status.draft{background:var(--gold);color:#1b1b1b}
+.status.approved{background:var(--ok);color:#fff}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:.75rem 0}
+.metric{border:1px solid var(--line);border-radius:8px;padding:.5rem .6rem;background:var(--surface)}
+.metric b{display:block;font:900 1.3rem var(--font)}
+.metric span{font:500 .68rem var(--label);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.metric.bad b{color:var(--warn)}
+.warnings{margin:.5rem 0 0;padding:0;list-style:none}
+.warnings li{border-left:4px solid var(--warn);background:#FCEDED;background:color-mix(in srgb,var(--warn) 9%,var(--surface));padding:.4rem .6rem;margin-bottom:.35rem;border-radius:0 6px 6px 0;font-size:.92rem}
+.allgood{border-left:4px solid var(--ok);padding:.4rem .6rem;background:#EAF4EF;background:color-mix(in srgb,var(--ok) 10%,var(--surface));border-radius:0 6px 6px 0;font-size:.92rem}
+
+/* the boat */
+.boat{position:relative;background:var(--hull);border-radius:50% 50% 22px 22px / 90px 90px 22px 22px;padding:70px 14px 18px;color:#fff}
+.boat.haslogo{padding-top:96px}
+.boat .head{position:absolute;top:12px;left:50%;transform:translateX(-50%);text-align:center;font:500 .7rem var(--label);text-transform:uppercase;letter-spacing:.12em;color:#BBBBBB}
+.boat .head img.mascot{width:92px;height:auto;max-width:none;margin-bottom:4px}
+.boat .head svg{display:block;margin:0 auto 2px}
+.boat .head img{display:block;margin:0 auto 2px;height:62px;width:auto;max-width:120px;object-fit:contain}
+.endseat{text-align:center;font:500 .7rem var(--label);text-transform:uppercase;letter-spacing:.12em;color:#BBBBBB;margin:4px 0 8px}
+.brow{display:grid;grid-template-columns:28px 1fr 1fr 40px;gap:6px;align-items:stretch;margin-bottom:6px}
+.brow .rn{display:grid;place-items:center;font:900 1.05rem var(--font);color:#FF3B42}
+.brow .rd{display:grid;place-items:center;font-size:.72rem;opacity:.8;text-align:center;line-height:1.1}
+.brow .rd.bad{color:#FFD27A;opacity:1}
+.zone-tag{font:500 .66rem var(--label);text-transform:uppercase;letter-spacing:.1em;color:#BBBBBB;margin:10px 0 4px 34px}
+.seat{position:relative;background:var(--bench);color:var(--ink);border:2px solid transparent;border-radius:8px;padding:.4rem .5rem;min-height:54px;text-align:left;font:inherit;cursor:pointer;display:flex;flex-direction:column;justify-content:center}
+.seat .nm{font:700 1rem/1.1 var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seat .sb{font-size:.75rem;color:var(--muted);display:flex;gap:.35rem;align-items:center}
+.seat.empty{background:transparent;border:2px dashed rgba(255,255,255,.3);color:#BBBBBB}
+.seat.empty .sb{color:#BBBBBB}
+.seat.sel{border-color:var(--sel);box-shadow:0 0 0 3px rgba(224,165,38,.45);box-shadow:0 0 0 3px color-mix(in srgb,var(--sel) 45%,transparent)}
+.seat.viol{border-color:transparent;outline:3px dashed #FFFFFF;outline-offset:-3px}
+/* weight heat map: card colour = weight band within today's crew */
+.seat.w1{background:var(--h1);color:var(--hi1)}.seat.w2{background:var(--h2);color:var(--hi2)}.seat.w3{background:var(--h3);color:var(--hi3)}
+.seat.w4{background:var(--h4);color:var(--hi4)}.seat.w5{background:var(--h5);color:var(--hi5)}
+.seat[class*=" w"] .sb{color:inherit;opacity:.85}
+/* level badges on seat cards: same greys in both modes, outlined so they read on every heat band */
+.seat{--l1:#EEEEEE;--l2:#D6D6D6;--l3:#A6A6A6;--l4:#4F4F4F;--l5:#1F1F1F}
+.seat .lvl{box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+.seat .lvl1,.seat .lvl2,.seat .lvl3{color:#1F1F1F!important}.seat .lvl4,.seat .lvl5{color:#FFFFFF!important}
+.heat-key{margin:12px 4px 0;font:500 .62rem var(--label);text-transform:uppercase;letter-spacing:.08em;color:#BBBBBB}
+.heat-key .ends{display:flex;justify-content:space-between;margin-bottom:4px}
+.heat-key .hk{display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
+.heat-key .hk i{display:block;height:12px;border-radius:3px}
+.heat-key .hk span{display:block;text-align:center;margin-top:3px;letter-spacing:0;white-space:nowrap}
+.seat .lk{position:absolute;top:4px;right:5px;color:inherit} /* matches the card's text ink: dark on pale heat bands, white on dark ones */
+.lvl{display:inline-grid;place-items:center;min-width:1.5em;height:1.3em;border-radius:4px;font:700 .72rem var(--font);padding:0 .25em}
+.lvl1{background:var(--l1);color:#14232B}.lvl2{background:var(--l2);color:#14232B}.lvl3{background:var(--l3);color:#14232B}
+.lvl4{background:var(--l4);color:#fff}.lvl5{background:var(--l5);color:#fff}
+:root[data-theme="dark"] .lvl4,:root[data-theme="dark"] .lvl5{color:#0E1A20}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .lvl4,:root:not([data-theme="light"]) .lvl5{color:#0E1A20}}
+:root[data-theme="dark"] .lvl1,:root[data-theme="dark"] .lvl2,:root[data-theme="dark"] .lvl3{color:#EEEEEE}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .lvl1,:root:not([data-theme="light"]) .lvl2,:root:not([data-theme="light"]) .lvl3{color:#EEEEEE}}
+.boat{box-shadow:0 0 0 1px var(--line)}
+.actionbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border:2px solid var(--sel);border-radius:10px;padding:.6rem .75rem;margin-bottom:.75rem}
+.chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.chip{border:1px solid var(--water-2);background:var(--surface);color:var(--ink);border-radius:999px;padding:.35rem .75rem;font:600 .9rem var(--font);cursor:pointer;min-height:36px}
+.chip.sel{background:var(--sel);border-color:var(--sel);color:#1b1b1b}
+/* logic tab */
+.rules{width:100%;border-collapse:collapse;font-size:.95rem}
+.rules th{background:var(--char);color:#fff;text-align:left;padding:.4rem .5rem;font:500 .7rem var(--label);text-transform:uppercase;letter-spacing:.06em}
+.rules td{padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top}
+.rules td:first-child{font-weight:900;text-transform:uppercase;color:var(--lacquer);white-space:nowrap}
+.rules a{color:var(--ink);font-weight:600}
+.rules.src td:first-child{white-space:normal;text-transform:none;min-width:9rem}
+.logic-list{margin:.25rem 0 .5rem;padding-left:1.2rem}
+.logic-list li{margin-bottom:.4rem}
+.logic-list li::marker{color:var(--red)}
+.lvl-crit{border:1px solid var(--line);border-left:4px solid var(--red);border-radius:4px;padding:.6rem .75rem;margin-bottom:.6rem}
+.lvl-crit h3{margin:0 0 .35rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.lvl-crit h3 .lvl{font-size:.8rem;min-width:2em;height:1.5em}
+.lvl-crit h3 small{font:500 .68rem var(--label);letter-spacing:.06em;color:var(--muted)}
+.lvl-crit .logic-list{margin-bottom:.35rem}
+.lvl-crit p{margin:0;font-size:.9rem}
+.setting{display:inline-block;background:#FDE8E9;background:color-mix(in srgb,var(--red) 10%,var(--surface));border:1px solid #F5B5B8;border:1px solid color-mix(in srgb,var(--red) 35%,var(--surface));border-radius:3px;padding:0 .35rem;font-weight:700}
+.notes{list-style:none;margin:0;padding:0}
+.notes li{padding:.55rem 0;border-bottom:1px solid var(--line)}
+.notes .where{font:900 .95rem var(--font);text-transform:uppercase;color:var(--red)}
+.notes .who{font-weight:600}
+.empty-state{text-align:center;padding:2rem 1rem}
+.share-text{white-space:pre;font:0.9rem/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--bench);border:1px solid var(--line);border-radius:8px;padding:.75rem;overflow-x:auto}
+.ask{position:fixed;top:0;right:0;bottom:0;left:0;z-index:30;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.55)}
+.ask-box{width:100%;max-width:420px;background:var(--surface);color:var(--ink);border-top:3px solid var(--red);border-radius:4px;padding:1rem}
+.ask-box p{margin:0 0 1rem;font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:.6rem 1rem;border-radius:8px;font-weight:600;z-index:20;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="title-row">
+      <div class="brand"><img src="assets/acca-logo-white.png" alt="ACCA Dragonboat Racing Team"><div><h1>Seat planner</h1><small>ACCA Dragonboat Racing Team</small></div></div>
+      <small id="sessionLabel">Mon, 12 Oct session</small>
+    </div>
+    <nav id="tabs" aria-label="Steps">
+      <button data-tab="logic" aria-current="false"><span class="n">0</span>Logic</button>
+      <button data-tab="roster" aria-current="page"><span class="n">1</span>Roster</button>
+      <button data-tab="attend" aria-current="false"><span class="n">2</span>Who's paddling</button>
+      <button data-tab="plan" aria-current="false"><span class="n">3</span>Seat plan</button>
+      <button data-tab="share" aria-current="false"><span class="n">4</span>Share</button>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="main"></main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+const KEY = "dbseat.v1";
+const ROWS = 10, SEATS = 20;
+// Experience levels; criteria are on the Logic tab (see renderLogic)
+const LEVEL_NAMES = {1:"New starter",2:"Developing",3:"Competent crew paddler",4:"Experienced",5:"Lead paddler"};
+const lvName = l => `Level ${l} (${LEVEL_NAMES[l]||""})`;
+const LOCK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1zm2 0h6V7a3 3 0 0 0-6 0v3z"/></svg>';
+
+
+const SAMPLE = [
+ ["Sarah K",64,5,"E",1,0],["Tom B",78,5,"E",1,1],["Priya N",61,4,"L",1,0],["Marcus L",92,4,"E",0,1],
+ ["Jess W",70,4,"R",0,1],["Daniel O",88,3,"E",0,0,1],["Mei C",58,3,"E",0,0],["Liam F",95,4,"E",0,0,1],
+ ["Hannah P",67,2,"E",0,0],["Raj S",84,3,"L",0,0,1],["Chloe M",72,3,"E",0,1],["Ben T",101,2,"E",0,0,1],
+ ["Grace H",63,1,"E",0,0],["Nathan J",80,4,"R",0,1],["Olivia D",69,2,"E",0,0],["Sam R",86,5,"E",1,1],
+ ["Emma G",66,3,"E",0,0],["Kai Y",77,1,"E",0,0],["Zoe A",59,4,"E",1,0],["Ahmed Z",90,3,"E",0,0,1],
+ ["Lucy V",71,2,"R",0,0],["Josh E",83,4,"E",0,1,1],["Ivy Q",62,1,"E",0,0],["Will C",98,3,"E",0,0,1]
+].map((r,i)=>({id:"p"+(i+1),name:r[0],weight:r[1],level:r[2],side:r[3],stroke:!!r[4],rocket:!!r[5],engine:!!r[6]}));
+
+function todayLabel(){
+  const d=new Date();
+  return d.toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"})+" session";
+}
+function freshState(){
+  return {
+    tab:"roster",
+    roster:SAMPLE.map(p=>({...p})),
+    attending:SAMPLE.slice(0,18).map(p=>p.id),
+    settings:{sessionType:"training",starters:"middle",trim:"neutral",drummer:"",sweep:"",tol:5,session:todayLabel()},
+    plan:null,
+    sample:true
+  };
+}
+let state;
+try{ const raw=localStorage.getItem(KEY); state=raw?JSON.parse(raw):null; }catch(e){ state=null; }
+if(!state||!Array.isArray(state.roster)) state=freshState();
+// An unedited sample roster saved before a sample field existed picks up the current sample values
+if(state.sample) state.roster.forEach(p=>{ const sp=SAMPLE.find(x=>x.id===p.id&&x.name===p.name); if(sp) p.engine=sp.engine; });
+state.settings=Object.assign({sessionType:"training",starters:"middle",trim:"neutral",drummer:"",sweep:"",tol:5,session:todayLabel()},state.settings||{});
+let ui={sel:null,pick:null,filter:""};
+
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
+function byId(){ const m={}; state.roster.forEach(p=>m[p.id]=p); return m; }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function rowOf(i){ return Math.floor(i/2)+1; }
+function sideOf(i){ return i%2; }
+function sideName(s){ return s===0?"Left":"Right"; }
+// In-page confirm: the browser's confirm() is blocked inside sandboxed frames (e.g. the claude.ai artifact viewer)
+function ask(msg,okLabel){
+  return new Promise(res=>{
+    const d=document.createElement("div"); d.className="ask"; d.setAttribute("role","alertdialog"); d.setAttribute("aria-modal","true");
+    d.innerHTML=`<div class="ask-box"><p>${esc(msg)}</p><div class="row-actions"><button class="btn primary" data-a="1">${esc(okLabel)}</button><button class="btn" data-a="0">Cancel</button></div></div>`;
+    const key=e=>{ if(e.key==="Escape") done(false); };
+    const done=v=>{ d.remove(); document.removeEventListener("keydown",key); res(v); };
+    d.addEventListener("click",e=>{ const b=e.target.closest("[data-a]"); if(b) done(b.dataset.a==="1"); else if(e.target===d) done(false); });
+    document.addEventListener("keydown",key);
+    document.body.appendChild(d); d.querySelector('[data-a="1"]').focus();
+  });
+}
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),2200); }
+function median(arr){ if(!arr.length) return 75; const a=[...arr].sort((x,y)=>x-y), m=Math.floor(a.length/2); return a.length%2?a[m]:(a[m-1]+a[m])/2; }
+
+/* ---------- scoring ---------- */
+function ctx(){
+  const m=byId();
+  const att=state.attending.filter(id=>m[id]);
+  const s=state.settings;
+  const lean = s.trim==="bow" ? -0.25 : s.trim==="stern" ? 0.25 : 0;
+  return {m, med:median(att.map(id=>+m[id].weight||0)), s, target:5.5+lean, drummer:+s.drummer||0, sweep:+s.sweep||0, race:s.sessionType==="race"};
+}
+function seatCost(p,row,side,c){
+  let k=0; const lv=+p.level||1, w=+p.weight||0;
+  // Side preferences only apply on race days; at training paddlers swap sides through the session
+  if(c.race&&p.side==="L"&&side!==0) k+=1000;
+  if(c.race&&p.side==="R"&&side!==1) k+=1000;
+  if(row===1){ if(!p.stroke) k+=60; if(lv<4) k+=40; else if(lv===4) k+=8; } // L5 lead paddlers preferred as strokes
+  if(row===2){ if(lv<4) k+=30; if(lv<=2) k+=60; }
+  if(row===3 && lv<=2) k+=10; // fronts must stay in stroke: Level 3+
+  if(row<=3 && w>c.med) k+=(w-c.med)*0.4;
+  if(row>=4 && row<=7 && w<c.med) k+=(c.med-w)*0.4;
+  if(p.engine && (row<4 || row>7)) k+=15;
+  if(c.s.starters==="middle"){
+    if(lv<=2){ if(row===3) k+=8; else if(row===7) k+=5; else if(row>=8) k+=25; }
+    if(row>=8 && lv>=3 && p.rocket) k-=0; else if(row>=8 && !p.rocket && lv<4) k+=6;
+  } else {
+    if(lv<=2){ if(row>=3 && row<=7) k+=15; }
+    if(row>=8 && lv>=4 && !p.rocket) k+=4;
+  }
+  return k;
+}
+function evaluate(seats,c){
+  let L=0,R=0,mom=c.drummer*0+c.sweep*11,tw=c.drummer+c.sweep,k=0;
+  for(let i=0;i<SEATS;i++){
+    const id=seats[i], row=rowOf(i), s=sideOf(i);
+    if(!id){ k+= row<=2 ? 1000 : (10-row)*3; continue; }
+    const p=c.m[id], w=+p.weight||0;
+    if(s===0) L+=w; else R+=w;
+    mom+=w*row; tw+=w;
+    k+=seatCost(p,row,s,c);
+  }
+  for(let r=1;r<=ROWS;r++){
+    const a=seats[2*r-2], b=seats[2*r-1];
+    if(a&&b){
+      const d=Math.abs((+c.m[a].weight||0)-(+c.m[b].weight||0)); if(d>10) k+=(d-10)*0.5;
+      const la=+c.m[a].level||1, lb=+c.m[b].level||1;
+      if(la===1 && lb===1) k+=20; else if(la<=2 && lb<=2) k+=12;
+    }
+  }
+  // Engine room needs at least one Level 4-5 paddler to lead calls such as a power series
+  if(!seats.slice(6,14).some(id=>id&&+c.m[id].level>=4)) k+=25;
+  const diff=Math.abs(L-R); k+=diff*diff*0.3;
+  const com = tw? mom/tw : 5.5;
+  k+=Math.pow((com-c.target)*10,2)*1.5;
+  return {cost:k,L,R,com};
+}
+function optimise(prev,locks){
+  const c=ctx();
+  const att=state.attending.filter(id=>c.m[id]);
+  const seats=new Array(SEATS).fill(null);
+  const lk=new Array(SEATS).fill(false);
+  const placed=new Set();
+  if(prev&&locks){
+    for(let i=0;i<SEATS;i++){
+      if(locks[i]&&prev[i]&&att.includes(prev[i])){ seats[i]=prev[i]; lk[i]=true; placed.add(prev[i]); }
+    }
+  }
+  const freeIdx=[]; for(let i=0;i<SEATS;i++) if(!lk[i]) freeIdx.push(i);
+  const pool=att.filter(id=>!placed.has(id));
+  let best=null,bestCost=Infinity;
+  for(let rs=0;rs<4;rs++){
+    const s=seats.slice();
+    const shuffled=pool.slice().sort(()=>Math.random()-0.5);
+    // seed: front-to-back by experience so annealing starts near sensible
+    shuffled.sort((a,b)=>(c.m[b].level-c.m[a].level)+(Math.random()-0.5)*2);
+    const order=freeIdx.slice().sort((a,b)=>a-b);
+    order.forEach((idx,j)=>{ s[idx]= j<shuffled.length ? shuffled[j] : null; });
+    let cur=evaluate(s,c).cost, local=s.slice(), localCost=cur;
+    const iters=18000, T0=60;
+    for(let it=0;it<iters;it++){
+      const T=T0*Math.pow(0.0005,it/iters);
+      const a=freeIdx[(Math.random()*freeIdx.length)|0], b=freeIdx[(Math.random()*freeIdx.length)|0];
+      if(a===b||s[a]===s[b]) continue;
+      [s[a],s[b]]=[s[b],s[a]];
+      const nc=evaluate(s,c).cost;
+      if(nc<=cur||Math.random()<Math.exp((cur-nc)/T)){ cur=nc; if(cur<localCost){localCost=cur; local=s.slice();} }
+      else { [s[a],s[b]]=[s[b],s[a]]; }
+    }
+    if(localCost<bestCost){ bestCost=localCost; best=local; }
+  }
+  return {seats:best,locks:lk};
+}
+
+/* ---------- reasons & warnings ---------- */
+function reason(p,i,seats,c){
+  const row=rowOf(i), s=sideOf(i), lv=+p.level||1, w=+p.weight||0;
+  const parts=[];
+  if(row===1){
+    parts.push(`Stroke: sets the pace for the whole boat. ${lvName(lv)}${p.stroke?", stroke-capable":""}.`);
+    if(!p.stroke) parts.push("Not flagged as stroke-capable, so check this seat.");
+  } else if(row===2){
+    parts.push(`Second row: follows the strokes closely and passes timing back. ${lvName(lv)}.`);
+  } else if(row===3){
+    parts.push(`Front: must keep timing, as the boat follows the front rows. ${lvName(lv)}.`);
+    if(w<=c.med) parts.push(`At ${w} kg, suits the tighter front seats.`);
+  } else if(row<=7){
+    if(lv<=2 && c.s.starters==="middle") parts.push(`New starter in the middle, beside experienced paddlers and close enough to see the strokes.`);
+    else if(p.engine) parts.push(`Engine room: flagged Engine, ${lvName(lv)}, ${w} kg, giving power and keeping the boat balanced.`);
+    else if(w>=c.med) parts.push(`Engine room: at ${w} kg, one of the heavier paddlers, giving power and keeping the boat balanced.`);
+    else parts.push(`Engine room: fills the middle to balance the boat. ${lvName(lv)}, ${w} kg.`);
+  } else {
+    if(lv<=2 && c.s.starters==="back") parts.push(`New starter at the back, where timing slips won't disrupt the crew while they learn.`);
+    else if(lv<=2) parts.push(`At the back as a new starter, ${lvName(lv)}; check they can follow timing from here.`);
+    else parts.push(`Back: ${lvName(lv)}${p.rocket?", rocket":""}, able to hold timing in the moving water at the back.`);
+  }
+  if(p.engine&&(row<4||row>7)) parts.push("Flagged Engine but seated outside rows 4–7, so check this seat.");
+  if(row>=4&&row<=7&&lv>=4) parts.push("Experienced enough to lead calls from the middle, such as a power series.");
+  if(c.race&&p.side!=="E") parts.push(`Paddles ${p.side==="L"?"left":"right"} only.`);
+  const partner=seats[s===0?i+1:i-1];
+  if(partner&&c.m[partner]){ const d=Math.round(w-(+c.m[partner].weight||0)); if(Math.abs(d)<=10) parts.push(`Within ${Math.abs(d)} kg of their row partner.`); else parts.push(`${Math.abs(d)} kg ${d>0?"heavier":"lighter"} than their row partner.`); }
+  return parts.join(" ");
+}
+function warnings(seats,c,ev){
+  const w=[]; const n=seats.filter(Boolean).length;
+  for(let i=0;i<4;i++){
+    const id=seats[i], row=rowOf(i);
+    if(!id){ w.push(`Row ${row} ${sideName(sideOf(i)).toLowerCase()} is empty. Rows 1 and 2 should always be filled.`); continue; }
+    const p=c.m[id];
+    if(row===1&&!p.stroke) w.push(`Row 1: ${p.name} isn't flagged as stroke-capable.`);
+    if(+p.level<4) w.push(`Row ${row}: ${p.name} is ${lvName(+p.level)}; the front two rows suit Level 4–5.`);
+  }
+  if(c.race) seats.forEach((id,i)=>{ if(!id) return; const p=c.m[id]; if((p.side==="L"&&sideOf(i)!==0)||(p.side==="R"&&sideOf(i)!==1)) w.push(`${p.name} paddles ${p.side==="L"?"left":"right"} only but is seated on the ${sideName(sideOf(i)).toLowerCase()}.`); });
+  for(let r=1;r<=ROWS;r++){ const a=seats[2*r-2],b=seats[2*r-1]; if(a&&b&&+c.m[a].level<=2&&+c.m[b].level<=2) w.push(`Row ${r}: two new starters side by side (${c.m[a].name} and ${c.m[b].name}).`); }
+  [4,5].forEach(i=>{ const id=seats[i]; if(id&&+c.m[id].level<=2) w.push(`Row 3: ${c.m[id].name} is ${lvName(+c.m[id].level)}; front paddlers must stay in stroke, so Level 3+ suits row 3.`); });
+  if(seats.filter(id=>id&&+c.m[id].level>=4).length>=5 && !seats.slice(6,14).some(id=>id&&+c.m[id].level>=4)) w.push("No Level 4–5 paddler in the engine room (rows 4–7) to lead calls such as a power series.");
+  const diff=Math.round(Math.abs(ev.L-ev.R)); const tol=+c.s.tol||5;
+  if(diff>tol) w.push(`${ev.L>ev.R?"Left":"Right"} side is ${diff} kg heavier (tolerance ${tol} kg).`);
+  const off=ev.com-5.5;
+  if(Math.abs(off)>0.3) w.push(`Boat sits ${off<0?"bow":"stern"} heavy (centre of weight at row ${ev.com.toFixed(1)}).`);
+  return w;
+}
+function trimText(com){ const off=com-5.5; if(Math.abs(off)<=0.1) return "level"; return (Math.abs(off)<=0.3?"slightly ":"")+(off<0?"bow heavy":"stern heavy"); }
+
+/* ---------- rendering ---------- */
+const main=document.getElementById("main");
+function setTab(t){ state.tab=t; ui.sel=null; ui.pick=null; save(); render(); window.scrollTo(0,0); }
+document.getElementById("tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-tab]"); if(b) setTab(b.dataset.tab); });
+
+function render(){
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===state.tab?"page":"false"));
+  document.getElementById("sessionLabel").textContent=state.settings.session||"";
+  ({logic:renderLogic,roster:renderRoster,attend:renderAttend,plan:renderPlan,share:renderShare})[state.tab]();
+}
+
+function renderLogic(){
+  const s=state.settings;
+  const trimTxt={neutral:"level",bow:"slightly bow heavy",stern:"slightly stern heavy"}[s.trim]||"level";
+  const startTxt=s.starters==="back"?"at the back, out of the timing line":"in the middle, beside experienced paddlers";
+  const roles=[
+    ["Row 1","Strokes: ticked Stroke, Level 5 preferred, Level 4 accepted","Set the pace for the whole boat and hold it under pressure from behind."],
+    ["Row 2","Level 4–5","Follow the strokes closely and pass the timing back."],
+    ["Row 3","Level 3+ paddlers who keep timing, often lighter","The front is tight, and the boat follows the front rows."],
+    ["Rows 4–7","Engine room: ticked Engine, heavier and strong, with at least one Level 4–5 to lead calls","Power, and weight in the middle keeps the boat balanced."],
+    ["Rows 8–10","Ticked Rocket, and skilled paddlers","The water at the back is already moving and harder to paddle in."],
+    ["Empty seats","Go to the back","So the front rows always stay full."]
+  ];
+  // Experience level criteria. No official body publishes a 1–5 paddler scale; each level's
+  // criteria come from the cited sources, and the boundaries between levels are a coaching judgement.
+  const levels=[
+    {n:1,name:"New starter",stage:"Foundations",crit:[
+      "Behaves safely in the boat and on the water, and follows the steerer's instructions.",
+      "Gets in and out of the boat correctly, with good posture and seating.",
+      "Holds the paddle correctly and understands paddling in time.",
+      "Responds to boat commands, such as stop and hold water, and can do basic drills."],
+      seats:"Middle or back, depending on the new-starter setting. Never rows 1–2, and kept out of row 3.",
+      src:"Dragon Boat Victoria, Foundation Phase 1"},
+    {n:2,name:"Developing",stage:"Foundations",crit:[
+      "Paddles a full piece in time with the paddler in front at a steady rate.",
+      "Shows each part of the stroke: set-up, catch, pull, exit and recovery, at a slower recovery.",
+      "Has completed, or is ready for, a novice program finishing in a 500 m festival race.",
+      "Still needs reminders to stay in time when the rate changes."],
+      seats:"Same as Level 1. Paired with experienced paddlers where possible.",
+      src:"Dragon Boat Canada coaching manual: stroke phases and 10-week novice program"},
+    {n:3,name:"Competent crew paddler",stage:"Foundations to Talent",crit:[
+      "Consistent catch with the blade fully buried, power from the torso rather than the arms, and a clean exit at the hip.",
+      "Stays in time through starts, rate changes and power calls.",
+      "Race fit for 200 m and 500 m, and trains regularly.",
+      "Races at club and festival level."],
+      seats:"Row 3 and anywhere further back. Not rows 1–2.",
+      src:"Dragon Boat Canada coaching manual: technique and general crew goals; AusDBF race-fit requirement"},
+    {n:4,name:"Experienced",stage:"Talent",crit:[
+      "Holds timing under pressure without being pushed by the crew behind.",
+      "Handles the rough water at the front or the moving water at the back.",
+      "Can lead calls from the middle, such as a power series or the break after the start.",
+      "Races regularly at regattas and state titles, or region level (e.g. NSW Region v Region)."],
+      seats:"Rows 2–3, the back, or leading the engine room. Row 1 if ticked Stroke.",
+      src:"Dragon Boat Canada coaching manual: positions in the boat and race starts; Dragon Boat NSW athlete pathway"},
+    {n:5,name:"Lead paddler",stage:"Talent to Elite",crit:[
+      "Sets and holds the stroke rate, and isn't pushed faster by pressure from behind.",
+      "Paddles into the bow wave at the front of the boat.",
+      "Works in step with the other stroke, the drummer and the steerer.",
+      "State, national or Club Crew World Championship experience."],
+      seats:"First choice for row 1 if ticked Stroke, otherwise row 2, leading the engine room, or the back.",
+      src:"Dragon Boat Canada coaching manual: strokes; Dragon Boat NSW and AusDBF athlete pathway"}
+  ];
+  const sources=[
+    ["https://www.dragonboatsa.com/media/1097/dsa_new_team_manual.pdf","Dragon Boats SA new team manual","Stronger paddlers in the middle. Avoid taller crew in the bow or stern because of back injury risk."],
+    ["https://cdn.revolutionise.com.au/cups/ausdbf/files/pmhjorevzj67xmjz.pdf","AusDBF safety manual","Decide seating before entering the boat."],
+    ["https://static1.squarespace.com/static/60d91ee6e9b1aa6184f6101c/t/65973222f29ae426b248659a/1704407598993/DBC+Manual_PDF+Whole_KJ+edits.pdf","Dragon Boat Canada coaching manual","Experienced, fit strokes. Smaller paddlers who keep timing at the front. Heavier paddlers in the middle. Novice crews often seat beginners at the back. Aim for neutral trim, else slightly stern heavy."],
+    ["https://www.dragonboatvictoria.com.au/about/how-to-dragon-boat","Dragon Boat Victoria: How to Dragon Boat","Foundation Phase 1: safe conduct, getting in and out, posture, paddle connection, timing, boat commands and basic drills."],
+    ["https://www.dbnsw.org.au/performance/athlete-pathway-framework","Dragon Boat NSW athlete pathway","Based on the AusDBF pathway and the Foundations, Talent, Elite, Mastery model. Club, then region, state, then Australia."],
+    ["https://www.dragonflyers.net.au/training/levels-of-training","Dragon Flyers (club): levels of training","Club page, not an official body. Says the AusDBF requires paddlers to be race fit at any level of competition."],
+    ["https://www.ausdbf.com.au/ausdbf-courses/coaching-courses","AusDBF coaching courses","Offers a \"T9 Coaching Template – Boat Seat Plan\" for accredited coaches. Not yet checked against this planner."]
+  ];
+  main.innerHTML=`
+    <div class="panel">
+      <h2>How the planner seats the boat</h2>
+      <p>The planner tries thousands of seat swaps and scores each arrangement against the rules on this page. Every rule a seat breaks adds points, and the arrangement with the fewest points wins. It runs four times from different starting orders and keeps the best result. Locked seats never move. Each paddler's level follows the criteria under Experience levels below, and the seat rules use those levels.</p>
+      <p class="muted">Balance figures are guidance, not hard limits. Paddler strength, the drummer's position and empty seats matter too, so the coach always has the final say. ACCA's own coaching conventions override anything here.</p>
+    </div>
+    <div class="panel">
+      <h2>Rules that are never broken</h2>
+      <ul class="logic-list">
+        <li>Race days only: left-only and right-only paddlers sit on their side. At training, paddlers swap sides through the session, so preferred sides are ignored. Current session type: <span class="setting">${s.sessionType==="race"?"race":"training"}</span>.</li>
+        <li>Rows 1 and 2 are always filled.</li>
+        <li>One standard boat: 10 rows, 20 seats. The drummer and sweep are not seated.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>Seat roles</h2>
+      <div class="roster-wrap"><table class="rules">
+        <thead><tr><th>Seats</th><th>Who sits there, and why</th></tr></thead>
+        <tbody>${roles.map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b><br><span class="muted">${r[2]}</span></td></tr>`).join("")}</tbody>
+      </table></div>
+    </div>
+    <div class="panel" id="levels">
+      <h2>Experience levels</h2>
+      <p class="muted">No Australian or international body publishes an official 1–5 paddler scale. Each level below is built from what official sources say a paddler at that stage can do. Where one level ends and the next begins is a coaching judgement, so ACCA coaches have the final say.</p>
+      ${levels.map(l=>`<div class="lvl-crit">
+        <h3><span class="lvl lvl${l.n}">L${l.n}</span>${l.name}<small>Pathway stage: ${l.stage}</small></h3>
+        <ul class="logic-list">${l.crit.map(c=>`<li>${c}</li>`).join("")}</ul>
+        <p><b>Seats:</b> ${l.seats}</p>
+        <p class="muted">Based on: ${l.src}</p>
+      </div>`).join("")}
+      <p class="muted">Pathway stages follow the Foundations, Talent, Elite and Mastery model used by the AusDBF and Dragon Boat NSW athlete pathway.</p>
+    </div>
+    <div class="panel">
+      <h2>Balance</h2>
+      <ul class="logic-list">
+        <li>Left and right totals within <span class="setting">${esc(s.tol)} kg</span> of each other. The further out, the bigger the penalty.</li>
+        <li>Centre of weight aims for the middle of the boat (row 5.5), trimmed <span class="setting">${trimTxt}</span>. Drummer and sweep weights count when entered.</li>
+        <li>Row partners within 10 kg of each other. Bigger gaps show in yellow beside the row.</li>
+      </ul>
+      <div class="row-actions"><button class="btn small" id="toSettings">Change settings</button></div>
+    </div>
+    <div class="panel">
+      <h2>New starters (Level 1–2)</h2>
+      <p>Current setting: placed <span class="setting">${startTxt}</span>.</p>
+      <ul class="logic-list">
+        <li><b>Middle:</b> beside experienced paddlers and close enough to see the strokes. Kept out of rows 8–10, and lightly kept off rows 3 and 7.</li>
+        <li><b>Back:</b> out of the timing line while they learn. Kept off rows 3–7.</li>
+        <li>Two Level 1s are never seated side by side if it can be avoided. Two new starters in one row is flagged as a warning.</li>
+      </ul>
+      <p class="muted">Sources disagree on where new starters belong, so this is a coach setting.</p>
+    </div>
+    <div class="panel">
+      <h2>Reading the seat plan</h2>
+      <ul class="logic-list">
+        <li>Card colour shows weight: pale for lighter, dark red for heavier, in five bands from the lightest to the heaviest paddler in the boat. The key sits under the sweep.</li>
+        <li>The L1–L5 badge is the paddler's level. On race days, L or R after the weight means that side only.</li>
+        <li>L+8 or R+5 beside a row shows which side of that row is heavier, and by how many kg.</li>
+        <li>On race days, a white dashed outline means a paddler is on the wrong side. A gold outline is the seat you've selected.</li>
+        <li>Weights and placement notes stay on this device. The shared plan shows names and seats only.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>Sources</h2>
+      <div class="roster-wrap"><table class="rules src">
+        <thead><tr><th>Source</th><th>What it says about seating</th></tr></thead>
+        <tbody>${sources.map(r=>`<tr><td><a href="${r[0]}" target="_blank" rel="noopener">${r[1]}</a></td><td>${r[2]}</td></tr>`).join("")}</tbody>
+      </table></div>
+    </div>`;
+  document.getElementById("toSettings").onclick=()=>setTab("attend");
+}
+
+function renderRoster(){
+  const rows=state.roster.map(p=>`
+    <tr data-id="${p.id}">
+      <td><input class="name" type="text" data-f="name" value="${esc(p.name)}" aria-label="Name"></td>
+      <td><input type="number" data-f="weight" value="${esc(p.weight)}" min="30" max="160" step="0.5" aria-label="Weight in kg"></td>
+      <td><select data-f="level" aria-label="Level">${[1,2,3,4,5].map(l=>`<option value="${l}" ${+p.level===l?"selected":""}>${l} · ${LEVEL_NAMES[l]}</option>`).join("")}</select></td>
+      <td><select data-f="side" aria-label="Side">${[["E","Either"],["L","Left only"],["R","Right only"]].map(([v,t])=>`<option value="${v}" ${p.side===v?"selected":""}>${t}</option>`).join("")}</select></td>
+      <td class="c"><input type="checkbox" data-f="stroke" ${p.stroke?"checked":""} aria-label="Stroke (row 1)"></td>
+      <td class="c"><input type="checkbox" data-f="engine" ${p.engine?"checked":""} aria-label="Engine (rows 4 to 7)"></td>
+      <td class="c"><input type="checkbox" data-f="rocket" ${p.rocket?"checked":""} aria-label="Rocket (back of boat)"></td>
+      <td class="c"><button class="btn small" data-del="${p.id}" aria-label="Remove ${esc(p.name)}">Remove</button></td>
+    </tr>`).join("");
+  main.innerHTML=`
+    ${state.sample?`<div class="panel"><p><strong>This roster is sample data.</strong> Replace it with your club's paddlers, by editing below or importing a CSV.</p><div class="row-actions"><button class="btn" id="clearSample">Clear sample roster</button></div></div>`:""}
+    <div class="panel">
+      <h2>Roster</h2>
+      <p class="muted">Levels run from 1 (new starter) to 5 (lead paddler). <a href="#levels" id="lvlHelp">What each level means</a>. Section: Stroke can sit in row 1, Engine suits the engine room (rows 4–7), Rocket is reliable at the back (rows 8–10). Tick any that apply. Side only applies on race days; at training, paddlers swap sides. Weights stay on this device and never appear in the shared plan.</p>
+      <div class="roster-wrap"><table class="roster">
+        <thead><tr><th rowspan="2">Name</th><th rowspan="2">Weight (kg)</th><th rowspan="2">Level</th><th rowspan="2">Side</th><th colspan="3" class="grp">Section</th><th rowspan="2"><span class="sr">Remove</span></th></tr><tr><th class="c">Stroke</th><th class="c">Engine</th><th class="c">Rocket</th></tr></thead>
+        <tbody>${rows||`<tr><td colspan="8" class="empty-state">No paddlers yet. Add one below or import a CSV.</td></tr>`}</tbody>
+      </table></div>
+      <div class="row-actions" style="margin-top:.75rem">
+        <button class="btn primary" id="addP">Add paddler</button>
+        <span class="muted">${state.roster.length} paddlers</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Import or export</h2>
+      <p class="muted">CSV columns: name, weight, level, side (L, R or E), stroke (Y/N), rocket (Y/N), engine (Y/N). Engine is optional, so older CSVs still import. Importing replaces the roster. Use export to pass the roster to another coach.</p>
+      <div class="row-actions" style="margin-bottom:.6rem">
+        <label class="btn" for="csvFile">Choose CSV file</label><input id="csvFile" type="file" accept=".csv,text/csv" class="sr">
+        <button class="btn" id="exportCsv">Copy roster as CSV</button>
+      </div>
+      <textarea id="csvText" aria-label="Paste CSV" placeholder="name,weight,level,side,stroke,rocket,engine&#10;Sarah K,64,5,E,Y,N,N"></textarea>
+      <div class="row-actions" style="margin-top:.5rem"><button class="btn" id="importCsv">Import pasted CSV</button></div>
+    </div>`;
+  main.querySelectorAll("tbody tr[data-id]").forEach(tr=>{
+    tr.addEventListener("change",e=>{
+      const f=e.target.dataset.f; if(!f) return;
+      const p=state.roster.find(x=>x.id===tr.dataset.id);
+      p[f]= e.target.type==="checkbox" ? e.target.checked : (f==="weight"||f==="level") ? +e.target.value : e.target.value;
+      state.sample=false; save();
+    });
+  });
+  main.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async()=>{
+    const id=b.dataset.del; const p=state.roster.find(x=>x.id===id);
+    if(!(await ask(`Remove ${p.name} from the roster?`,"Remove"))) return;
+    state.roster=state.roster.filter(x=>x.id!==id); state.attending=state.attending.filter(x=>x!==id);
+    if(state.plan) state.plan.seats=state.plan.seats.map(s=>s===id?null:s);
+    save(); render();
+  }));
+  document.getElementById("lvlHelp").onclick=e=>{ e.preventDefault(); setTab("logic"); document.getElementById("levels").scrollIntoView(); };
+  const cs=document.getElementById("clearSample");
+  if(cs) cs.onclick=async()=>{ if(!(await ask("Clear the sample roster? This removes all 24 sample paddlers.","Clear roster"))) return; state.roster=[]; state.attending=[]; state.plan=null; state.sample=false; save(); render(); };
+  document.getElementById("addP").onclick=()=>{
+    const id="p"+Date.now().toString(36);
+    state.roster.push({id,name:"New paddler",weight:75,level:1,side:"E",stroke:false,engine:false,rocket:false});
+    state.sample=false; save(); render();
+    const inp=main.querySelector(`tr[data-id="${id}"] input.name`); if(inp){ inp.focus(); inp.select(); }
+  };
+  document.getElementById("csvFile").onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>importCsv(r.result); r.readAsText(f); };
+  document.getElementById("importCsv").onclick=()=>importCsv(document.getElementById("csvText").value);
+  document.getElementById("exportCsv").onclick=()=>{
+    const lines=["name,weight,level,side,stroke,rocket,engine"].concat(state.roster.map(p=>[`"${p.name.replace(/"/g,'""')}"`,p.weight,p.level,p.side,p.stroke?"Y":"N",p.rocket?"Y":"N",p.engine?"Y":"N"].join(",")));
+    copyText(lines.join("\n"),"Roster copied as CSV");
+  };
+}
+function parseCsv(text){
+  const out=[]; let row=[],cell="",q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===','){ row.push(cell); cell=""; }
+    else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&text[i+1]==='\n') i++; row.push(cell); out.push(row); row=[]; cell=""; }
+    else cell+=ch;
+  }
+  if(cell!==""||row.length){ row.push(cell); out.push(row); }
+  return out.filter(r=>r.some(c=>c.trim()!==""));
+}
+async function importCsv(text){
+  const rows=parseCsv(text||""); if(!rows.length){ toast("No rows found in that CSV"); return; }
+  let start=0; const h=rows[0].map(x=>x.trim().toLowerCase());
+  let idx={name:0,weight:1,level:2,side:3,stroke:4,rocket:5,engine:6};
+  if(h.includes("name")){ start=1; Object.keys(idx).forEach(k=>{ const j=h.indexOf(k); idx[k]=j; }); }
+  const yes=v=>/^(y|yes|true|1)$/i.test((v||"").trim());
+  const sideV=v=>{ v=(v||"").trim().toUpperCase(); return v.startsWith("L")?"L":v.startsWith("R")?"R":"E"; };
+  const list=[]; const bad=[];
+  rows.slice(start).forEach((r,n)=>{
+    const name=(r[idx.name]||"").trim(); const w=parseFloat(r[idx.weight]); const lv=parseInt(r[idx.level],10);
+    if(!name||!(w>0)||!(lv>=1&&lv<=5)){ bad.push(n+start+1); return; }
+    list.push({id:"p"+Date.now().toString(36)+n,name,weight:w,level:lv,side:idx.side>=0?sideV(r[idx.side]):"E",stroke:idx.stroke>=0&&yes(r[idx.stroke]),rocket:idx.rocket>=0&&yes(r[idx.rocket]),engine:idx.engine>=0&&yes(r[idx.engine])});
+  });
+  if(!list.length){ toast("No valid rows. Each row needs a name, weight and level 1–5."); return; }
+  if(!(await ask(`Replace the roster with ${list.length} paddlers from this CSV?${bad.length?` ${bad.length} row(s) skipped (line ${bad.slice(0,5).join(", ")}).`:""}`,"Replace roster"))) return;
+  state.roster=list; state.attending=[]; state.plan=null; state.sample=false; save(); render();
+  toast(`Imported ${list.length} paddlers`);
+}
+
+function renderAttend(){
+  const m=byId(); const n=state.attending.filter(id=>m[id]).length;
+  const f=ui.filter.toLowerCase();
+  const list=state.roster.filter(p=>!f||p.name.toLowerCase().includes(f)).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  const s=state.settings;
+  main.innerHTML=`
+    <div class="panel">
+      <div class="row-actions" style="justify-content:space-between">
+        <div><h2 style="margin:0">Who's paddling</h2><p class="muted" style="margin:0">Tick everyone attending, from the Stack Team App event list.</p></div>
+        <div><span class="count ${n>SEATS||n<10?"bad":""}">${n}</span> <span class="muted">of 20 seats</span></div>
+      </div>
+      ${n>SEATS?`<p style="color:var(--warn);font-weight:600">${n-SEATS} too many. The boat seats 20, so untick ${n-SEATS} to continue.</p>`:""}
+      ${n<10&&n>0?`<p style="color:var(--warn);font-weight:600">Tick at least 10 paddlers to build a plan.</p>`:""}
+      <div class="row-actions" style="margin-top:.5rem">
+        <input type="search" id="filt" placeholder="Search names" value="${esc(ui.filter)}" style="max-width:260px" aria-label="Search names">
+        <button class="btn small" id="allOn">Tick all</button>
+        <button class="btn small" id="allOff">Clear all</button>
+      </div>
+      <div class="att-grid">${list.map(p=>`
+        <label class="att ${state.attending.includes(p.id)?"on":""}">
+          <input type="checkbox" data-att="${p.id}" ${state.attending.includes(p.id)?"checked":""}>
+          <span><span class="cond" style="font-weight:700;font-size:1.05rem">${esc(p.name)}</span><br><span class="meta">${lvName(+p.level)}${p.side!=="E"?`, ${p.side==="L"?"left":"right"} only`:""}${p.stroke?", stroke":""}${p.engine?", engine":""}${p.rocket?", rocket":""}</span></span>
+        </label>`).join("")||`<p class="muted">No paddlers match.</p>`}</div>
+    </div>
+    <div class="panel">
+      <h2>Session settings</h2>
+      <div class="settings">
+        <div><label for="sess">Session name</label><input id="sess" type="text" value="${esc(s.session)}"></div>
+        <div><label for="stype">Session type</label><select id="stype">
+          <option value="training" ${s.sessionType!=="race"?"selected":""}>Training: paddlers swap sides</option>
+          <option value="race" ${s.sessionType==="race"?"selected":""}>Race: paddlers' preferred side</option></select></div>
+        <div><label for="starters">New starters (Level 1–2)</label><select id="starters">
+          <option value="middle" ${s.starters==="middle"?"selected":""}>Middle, beside experienced paddlers</option>
+          <option value="back" ${s.starters==="back"?"selected":""}>Back, out of the timing line</option></select></div>
+        <div><label for="trim">Front/back trim</label><select id="trim">
+          <option value="neutral" ${s.trim==="neutral"?"selected":""}>Level</option>
+          <option value="bow" ${s.trim==="bow"?"selected":""}>Slightly bow heavy</option>
+          <option value="stern" ${s.trim==="stern"?"selected":""}>Slightly stern heavy</option></select></div>
+        <div><label for="tol">Left/right tolerance (kg)</label><input id="tol" type="number" min="0" max="30" value="${esc(s.tol)}"></div>
+        <div><label for="drum">Drummer weight (kg, optional)</label><input id="drum" type="number" min="0" max="160" value="${esc(s.drummer)}"></div>
+        <div><label for="sweep">Sweep weight (kg, optional)</label><input id="sweep" type="number" min="0" max="160" value="${esc(s.sweep)}"></div>
+      </div>
+      <div class="row-actions" style="margin-top:1rem">
+        <button class="btn primary" id="gen" ${n>SEATS||n<10?"disabled":""}>${state.plan?"Build a new draft plan":"Build draft plan"}</button>
+        ${state.plan?`<button class="btn" id="toPlan">Back to current plan</button>`:""}
+      </div>
+      ${state.plan?`<p class="muted" style="margin-top:.5rem">A new draft keeps any locked seats.</p>`:""}
+    </div>`;
+  const fi=document.getElementById("filt");
+  fi.addEventListener("input",()=>{ ui.filter=fi.value; const pos=fi.selectionStart; renderAttend(); const n2=document.getElementById("filt"); n2.focus(); n2.setSelectionRange(pos,pos); });
+  main.querySelectorAll("[data-att]").forEach(cb=>cb.addEventListener("change",()=>{
+    const id=cb.dataset.att;
+    if(cb.checked){ if(!state.attending.includes(id)) state.attending.push(id); } else state.attending=state.attending.filter(x=>x!==id);
+    save(); renderAttend();
+  }));
+  document.getElementById("allOn").onclick=()=>{ state.roster.forEach(p=>{ if(!state.attending.includes(p.id)) state.attending.push(p.id); }); save(); renderAttend(); };
+  document.getElementById("allOff").onclick=()=>{ state.attending=[]; save(); renderAttend(); };
+  const bind=(id,key,num)=>{ document.getElementById(id).addEventListener("change",e=>{ s[key]=num?(e.target.value===""?"":+e.target.value):e.target.value; save(); if(key==="session") render(); }); };
+  bind("sess","session"); bind("stype","sessionType"); bind("starters","starters"); bind("trim","trim"); bind("tol","tol",true); bind("drum","drummer",true); bind("sweep","sweep",true);
+  document.getElementById("gen").onclick=()=>{
+    const b=document.getElementById("gen"); b.disabled=true; b.textContent="Balancing the boat…";
+    setTimeout(()=>{
+      const prev=state.plan;
+      const r=optimise(prev?prev.seats:null, prev?prev.locks:null);
+      state.plan={seats:r.seats,locks:r.locks,status:"draft"};
+      save(); setTab("plan");
+    },30);
+  };
+  const tp=document.getElementById("toPlan"); if(tp) tp.onclick=()=>setTab("plan");
+}
+
+function syncPlan(){
+  if(!state.plan) return;
+  const m=byId();
+  state.plan.seats=state.plan.seats.map((id,i)=>{ if(id&&(!m[id]||!state.attending.includes(id))){ state.plan.locks[i]=false; return null; } return id; });
+}
+function heatScale(seats,c){
+  const ws=seats.filter(Boolean).map(id=>+c.m[id].weight||0);
+  return ws.length?{min:Math.min(...ws),max:Math.max(...ws)}:{min:0,max:0};
+}
+function heatBin(w,c){
+  const {min,max}=c.heat; if(max<=min) return 3;
+  return Math.min(5,1+Math.floor((w-min)/(max-min)*5));
+}
+function heatKey(c){
+  const {min,max}=c.heat; if(max<=min) return "";
+  const step=(max-min)/5;
+  const cells=[1,2,3,4,5].map(b=>{ const lo=Math.round(min+step*(b-1)), hi=Math.round(min+step*b); return `<div><i style="background:var(--h${b})"></i><span>${lo}–${hi}</span></div>`; }).join("");
+  return `<div class="heat-key" aria-label="Seat colour shows weight, ${min} to ${max} kg"><div class="ends"><span>Lighter</span><span>Seat colour = weight</span><span>Heavier</span></div><div class="hk">${cells}</div></div>`;
+}
+function seatHTML(i,seats,c,approved,viol){
+  const id=seats[i]; const p=id?c.m[id]:null; const locked=state.plan.locks[i];
+  const sel=ui.sel===i;
+  const label=p?`Row ${rowOf(i)} ${sideName(sideOf(i))}: ${p.name}`:`Row ${rowOf(i)} ${sideName(sideOf(i))}: empty`;
+  return `<button class="seat ${p?"w"+heatBin(+p.weight||0,c):"empty"} ${sel?"sel":""} ${viol.has(i)?"viol":""}" data-seat="${i}" ${approved?"disabled":""} aria-label="${esc(label)}${locked?", locked":""}">
+    ${locked?`<span class="lk">${LOCK_SVG}</span>`:""}
+    ${p?`<span class="nm">${esc(p.name)}</span><span class="sb"><span class="lvl lvl${p.level}" title="${lvName(+p.level)}">L${p.level}</span>${p.weight} kg${c.race&&p.side!=="E"?` ${p.side}`:""}</span>`:`<span class="nm" style="font-weight:600">Empty</span><span class="sb">${ui.pick?"Tap to place":"&nbsp;"}</span>`}
+  </button>`;
+}
+function renderPlan(){
+  if(!state.plan){ main.innerHTML=`<div class="panel empty-state"><h2>No plan yet</h2><p>Tick who's paddling, then build a draft plan.</p><button class="btn primary" id="go">Go to Who's paddling</button></div>`; document.getElementById("go").onclick=()=>setTab("attend"); return; }
+  syncPlan();
+  const c=ctx(); const seats=state.plan.seats; const ev=evaluate(seats,c); const warns=warnings(seats,c,ev);
+  const approved=state.plan.status==="approved";
+  const viol=new Set(); if(c.race) seats.forEach((id,i)=>{ if(!id) return; const p=c.m[id]; if((p.side==="L"&&sideOf(i)!==0)||(p.side==="R"&&sideOf(i)!==1)) viol.add(i); });
+  const unseated=state.attending.filter(id=>c.m[id]&&!seats.includes(id));
+  const diff=Math.round(Math.abs(ev.L-ev.R)); const tol=+c.s.tol||5;
+  c.heat=heatScale(seats,c);
+  let boat=""; const zones={1:"Strokes and front",4:"Engine room",8:"Back"};
+  for(let r=1;r<=ROWS;r++){
+    if(zones[r]) boat+=`<div class="zone-tag">${zones[r]}</div>`;
+    const a=seats[2*r-2],b=seats[2*r-1]; let rd="";
+    if(a&&b){ const d=Math.round((+c.m[a].weight)-(+c.m[b].weight)); rd=`<div class="rd ${Math.abs(d)>10?"bad":""}">${d===0?"even":(d>0?"L+":"R+")+Math.abs(d)}</div>`; } else rd=`<div class="rd"></div>`;
+    boat+=`<div class="brow"><div class="rn">${r}</div>${seatHTML(2*r-2,seats,c,approved,viol)}${seatHTML(2*r-1,seats,c,approved,viol)}${rd}</div>`;
+  }
+  const headArt=`<img class="mascot" src="assets/acca-dragon-red.png" alt="">`;
+  let bar="";
+  if(!approved&&ui.sel!==null){
+    const id=seats[ui.sel]; const p=id?c.m[id]:null; const locked=state.plan.locks[ui.sel];
+    bar=`<div class="actionbar"><strong>${p?esc(p.name):"Empty seat"}</strong> in row ${rowOf(ui.sel)} ${sideName(sideOf(ui.sel)).toLowerCase()}. ${locked?"Unlock to move.":"Tap another seat to swap."}
+      <div class="row-actions" style="margin-top:.4rem">
+        ${p?`<button class="btn small" id="lockBtn">${locked?"Unlock seat":"Lock seat"}</button>`:""}
+        ${p&&!locked?`<button class="btn small" id="benchBtn">Take out of boat</button>`:""}
+        <button class="btn small" id="cancelSel">Done</button>
+      </div></div>`;
+  }
+  if(!approved&&ui.pick){
+    bar=`<div class="actionbar"><strong>${esc(c.m[ui.pick].name)}</strong> selected. Tap a seat to place them; anyone already there goes to the not-seated list.<div class="row-actions" style="margin-top:.4rem"><button class="btn small" id="cancelPick">Cancel</button></div></div>`;
+  }
+  const notes=[]; seats.forEach((id,i)=>{ if(id) notes.push(`<li><span class="where">Row ${rowOf(i)} ${sideName(sideOf(i))}</span> <span class="who">${esc(c.m[id].name)}</span><br><span class="muted">${esc(reason(c.m[id],i,seats,c))}</span></li>`); });
+  main.innerHTML=`
+    <div class="plan-layout">
+      <div>
+        ${bar}
+        <div class="boat haslogo" aria-label="Boat seating, row 1 at the front">
+          <div class="head">${headArt}Bow</div>
+          <div class="endseat">Drummer${c.drummer?` (${c.drummer} kg)`:""}</div>
+          ${boat}
+          <div class="endseat" style="margin-top:8px">Sweep${c.sweep?` (${c.sweep} kg)`:""}</div>
+          ${heatKey(c)}
+        </div></div>
+      </div>
+      <div>
+        <div class="panel">
+          <div class="row-actions" style="justify-content:space-between"><h2 style="margin:0">${esc(state.settings.session)}</h2><span class="status ${approved?"approved":"draft"}">${approved?"Approved":"Draft for coaches"}</span></div>
+          <div class="metrics">
+            <div class="metric ${diff>tol?"bad":""}"><b>${diff} kg</b><span>${ev.L>ev.R?"left heavier":ev.R>ev.L?"right heavier":"left/right even"}</span></div>
+            <div class="metric"><b>${Math.round(ev.L)} / ${Math.round(ev.R)}</b><span>left / right kg</span></div>
+            <div class="metric ${Math.abs(ev.com-5.5)>0.3?"bad":""}"><b>Row ${ev.com.toFixed(1)}</b><span>centre of weight, ${trimText(ev.com)}</span></div>
+          </div>
+          <p class="muted" style="margin:.25rem 0 .5rem">${c.race?"Race: paddlers' preferred side.":"Training: paddlers swap sides through the session, so preferred sides are ignored."}</p>
+          ${warns.length?`<ul class="warnings">${warns.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`:`<div class="allgood">No rule warnings. Balance and seat roles are within the settings.</div>`}
+          ${unseated.length?`<h3>Not seated (${unseated.length})</h3><p class="muted" style="margin-top:0">Tap a name, then tap a seat.</p><div class="chips">${unseated.map(id=>`<button class="chip ${ui.pick===id?"sel":""}" data-pick="${id}" ${approved?"disabled":""}>${esc(c.m[id].name)}</button>`).join("")}</div>`:""}
+          <div class="row-actions" style="margin-top:1rem">
+            ${approved?`<button class="btn primary" id="toShare">Share with the team</button><button class="btn" id="unapprove">Edit again</button>`:
+            `<button class="btn primary" id="approve">Approve plan</button><button class="btn" id="regen">Re-balance (keeps locked seats)</button>${state.plan.locks.some(Boolean)?`<button class="btn" id="unlockAll">Unlock all seats (${state.plan.locks.filter(Boolean).length})</button>`:""}<button class="btn" id="toAttend">Change who's paddling</button>`}
+          </div>
+          ${approved?"":`<p class="muted" style="margin-top:.5rem">Tap a seat, then another seat to swap them. Lock seats you want to keep before re-balancing.</p>`}
+        </div>
+        <div class="panel">
+          <h2>Placement notes</h2>
+          <p class="muted">For coaches only. These notes and weights aren't included when you share.</p>
+          <ul class="notes">${notes.join("")}</ul>
+        </div>
+      </div>
+    </div>`;
+  main.querySelectorAll("[data-seat]").forEach(b=>b.addEventListener("click",()=>seatTap(+b.dataset.seat)));
+  main.querySelectorAll("[data-pick]").forEach(b=>b.addEventListener("click",()=>{ ui.sel=null; ui.pick= ui.pick===b.dataset.pick?null:b.dataset.pick; renderPlan(); }));
+  const q=id=>document.getElementById(id);
+  if(q("lockBtn")) q("lockBtn").onclick=()=>{ state.plan.locks[ui.sel]=!state.plan.locks[ui.sel]; save(); renderPlan(); };
+  if(q("benchBtn")) q("benchBtn").onclick=()=>{ state.plan.seats[ui.sel]=null; ui.sel=null; save(); renderPlan(); };
+  if(q("cancelSel")) q("cancelSel").onclick=()=>{ ui.sel=null; renderPlan(); };
+  if(q("cancelPick")) q("cancelPick").onclick=()=>{ ui.pick=null; renderPlan(); };
+  if(q("approve")) q("approve").onclick=async()=>{
+    if(warns.length && !(await ask(`There ${warns.length===1?"is 1 warning":"are "+warns.length+" warnings"}. Approve anyway?`,"Approve anyway"))) return;
+    state.plan.status="approved"; ui.sel=null; ui.pick=null; save(); renderPlan(); toast("Plan approved");
+  };
+  if(q("unapprove")) q("unapprove").onclick=()=>{ state.plan.status="draft"; save(); renderPlan(); };
+  if(q("unlockAll")) q("unlockAll").onclick=()=>{ state.plan.locks=state.plan.locks.map(()=>false); save(); renderPlan(); toast("All seats unlocked"); };
+  if(q("regen")) q("regen").onclick=()=>{
+    const b=q("regen"); b.disabled=true; b.textContent="Balancing the boat…";
+    setTimeout(()=>{ const r=optimise(state.plan.seats,state.plan.locks); state.plan.seats=r.seats; state.plan.locks=r.locks; ui.sel=null; save(); renderPlan(); toast("Re-balanced"); },30);
+  };
+  if(q("toAttend")) q("toAttend").onclick=()=>setTab("attend");
+  if(q("toShare")) q("toShare").onclick=()=>setTab("share");
+}
+function seatTap(i){
+  const p=state.plan;
+  if(ui.pick){
+    const prev=p.seats[i];
+    if(p.locks[i]){ toast("That seat is locked. Unlock it first."); return; }
+    p.seats[i]=ui.pick; ui.pick=null; save(); renderPlan();
+    if(prev) toast("Moved the previous paddler to not seated");
+    return;
+  }
+  if(ui.sel===null){ ui.sel=i; renderPlan(); return; }
+  if(ui.sel===i){ ui.sel=null; renderPlan(); return; }
+  const a=ui.sel;
+  if(p.locks[a]||p.locks[i]){ toast("Locked seats can't be swapped. Unlock first."); ui.sel=i; renderPlan(); return; }
+  [p.seats[a],p.seats[i]]=[p.seats[i],p.seats[a]];
+  ui.sel=null; save(); renderPlan();
+}
+
+function shareText(){
+  const m=byId(); const s=state.plan.seats;
+  const nm=id=>id&&m[id]?m[id].name:"—";
+  const lines=[`Seating plan: ${state.settings.session}`,""];
+  const w=Math.max(8,...s.filter(Boolean).map(id=>nm(id).length));
+  for(let r=1;r<=ROWS;r++) lines.push(`Row ${String(r).padStart(2," ")}  ${nm(s[2*r-2]).padEnd(w," ")}  |  ${nm(s[2*r-1])}`);
+  lines.push("","Left side first, then right. Row 1 is the front.");
+  return lines.join("\n");
+}
+function renderShare(){
+  if(!state.plan||state.plan.status!=="approved"){
+    main.innerHTML=`<div class="panel empty-state"><h2>Approve the plan first</h2><p>Sharing opens once a coach has approved the seat plan.</p><button class="btn primary" id="go">Go to seat plan</button></div>`;
+    document.getElementById("go").onclick=()=>setTab("plan"); return;
+  }
+  syncPlan();
+  const txt=shareText();
+  main.innerHTML=`
+    <div class="panel">
+      <h2>Share with the team</h2>
+      <p class="muted">Names and seats only. Paste into the Stack Team App event chat, Messenger or WhatsApp.</p>
+      <div class="share-text" id="st">${esc(txt)}</div>
+      <div class="row-actions" style="margin-top:.75rem">
+        <button class="btn primary" id="imgBtn">Copy image</button>
+        <button class="btn" id="copyBtn">Copy text</button>
+        ${navigator.share?`<button class="btn" id="nativeShare">Share…</button>`:""}
+      </div>
+      <p class="muted" style="margin:.5rem 0 0">Copy image, then paste it straight into the chat.</p>
+    </div>
+    <div class="panel"><h3 style="margin-top:0">Preview image</h3>
+      <canvas id="cv" hidden></canvas>
+      <img id="pimg" alt="Seating plan image" style="display:block;max-width:100%;height:auto;border-radius:8px;border:1px solid var(--line)">
+      <p class="muted" style="margin:.5rem 0 0">If Copy image doesn't work on your device, press and hold (or right-click) the image and choose Copy.</p>
+    </div>`;
+  // The preview is an <img> so press-and-hold "Copy" works on phones; it updates once the logo and dragon have loaded
+  let ready; const painted=new Promise(r=>ready=r);
+  const cv=drawImage(document.getElementById("cv"),c=>{ document.getElementById("pimg").src=c.toDataURL("image/png"); ready(); });
+  document.getElementById("copyBtn").onclick=()=>copyText(txt,"Seating plan copied");
+  const ns=document.getElementById("nativeShare");
+  // Build the image file ahead of time: iOS Safari only opens the share sheet straight after a tap, with no waiting in between
+  let shareFile=null;
+  painted.then(()=>cv.toBlob(b=>{ if(b) shareFile=new File([b],"seating-plan.png",{type:"image/png"}); },"image/png"));
+  if(ns) ns.onclick=async()=>{
+    try{
+      if(shareFile&&navigator.canShare&&navigator.canShare({files:[shareFile]})) await navigator.share({files:[shareFile],title:"Seating plan"});
+      else await navigator.share({text:txt,title:"Seating plan"});
+    }catch(e){ if(e&&e.name!=="AbortError") copyText(txt,"Sharing unavailable here, so the text was copied"); }
+  };
+  document.getElementById("imgBtn").onclick=async()=>{
+    const blob=painted.then(()=>new Promise(r=>cv.toBlob(r,"image/png")));
+    try{
+      if(!(navigator.clipboard&&navigator.clipboard.write&&window.ClipboardItem)) throw new Error("unsupported");
+      // Pass the blob as a promise so Safari keeps the tap as the user gesture; retry with the blob for older browsers
+      try{ await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]); }
+      catch(e){ if(e&&e.name==="NotAllowedError") throw e; await navigator.clipboard.write([new ClipboardItem({"image/png":await blob})]); }
+      toast("Image copied. Paste it into the chat.");
+    }catch(e){
+      toast("Copying images isn't available here. Press and hold the image, then choose Copy.");
+      document.getElementById("pimg").scrollIntoView({behavior:"smooth",block:"center"});
+    }
+  };
+}
+function drawImage(cv,done){
+  // Same boat as the Seat plan tab (hull, dragon, zones, cream seat cards), names only.
+  // No weight colours, levels, weights or reasons: the shared plan must never reveal them.
+  const m=byId(); const s=state.plan.seats;
+  const W=640, band=84, hx0=40, hx1=W-40, hTop=band+24, rv=90;
+  const rowH=50, cardH=42, zoneH=24, headH=150;
+  const hullH=headH+3*zoneH+ROWS*rowH+52;
+  const H=hTop+hullH+24+44;
+  const dpr=2; cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+"px";
+  const g=cv.getContext("2d"); if(!g) return cv; g.scale(dpr,dpr);
+  const F="'Source Sans 3','Source Sans Pro',Arial,sans-serif", LB="Roboto,Arial,sans-serif";
+  const fit=(t,max)=>{ if(g.measureText(t).width<=max) return t; while(t.length>1&&g.measureText(t+"…").width>max) t=t.slice(0,-1); return t+"…"; };
+  const rr=(x,y,w,hh,r)=>{ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+hh,r); g.arcTo(x+w,y+hh,x,y+hh,r); g.arcTo(x,y+hh,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); };
+  const label=(t,x,y,align)=>{ g.font="500 11px "+LB; g.fillStyle="#BBBBBB"; g.textAlign=align||"center"; g.fillText(t.split("").join(String.fromCharCode(8202)),x,y); g.textAlign="left"; };
+  const paint=(logo,dragon)=>{
+    g.fillStyle="#FFFFFF"; g.fillRect(0,0,W,H);
+    // header band
+    g.fillStyle="#ED1C24"; g.fillRect(0,0,W,band);
+    let tx=28;
+    if(logo){ const lh=64, lw=Math.min(100,logo.width*lh/logo.height); g.drawImage(logo,20,10,lw,lw*logo.height/logo.width); tx=20+lw+16; }
+    g.fillStyle="#FFFFFF"; g.font="900 32px "+F; g.fillText("SEATING PLAN",tx,44);
+    g.font="500 14px "+LB; g.fillText((state.settings.session||"").toUpperCase(),tx,66);
+    // hull: rounded bow, square-ish stern, like the Seat plan
+    const hBot=hTop+hullH, cx=(hx0+hx1)/2, hw=(hx1-hx0)/2;
+    g.beginPath(); g.moveTo(hx0,hTop+rv); g.ellipse(cx,hTop+rv,hw,rv,0,Math.PI,2*Math.PI);
+    g.lineTo(hx1,hBot-22); g.arcTo(hx1,hBot,hx1-22,hBot,22); g.lineTo(hx0+22,hBot); g.arcTo(hx0,hBot,hx0,hBot-22,22); g.closePath();
+    g.fillStyle="#1F1F1F"; g.fill();
+    // bow: dragon, BOW, DRUMMER
+    if(dragon){ const dw=110, dh=dw*dragon.height/dragon.width; g.drawImage(dragon,cx-dw/2,hTop+26,dw,dh); }
+    label("BOW",cx,hTop+104); label("DRUMMER",cx,hTop+134);
+    // rows
+    const numX=hx0+30, cx0=hx0+52, gap=8, cw=(hx1-24-cx0-gap)/2;
+    const zones={1:"STROKES AND FRONT",4:"ENGINE ROOM",8:"BACK"};
+    let y=hTop+headH;
+    for(let r=1;r<=ROWS;r++){
+      if(zones[r]){ label(zones[r],cx0,y+16,"left"); y+=zoneH; }
+      g.fillStyle="#FF3B42"; g.font="900 20px "+F; g.textAlign="center"; g.fillText(String(r),numX,y+cardH/2+7); g.textAlign="left";
+      [s[2*r-2],s[2*r-1]].forEach((id,k)=>{
+        const x=cx0+k*(cw+gap);
+        if(id&&m[id]){
+          rr(x,y,cw,cardH,8); g.fillStyle="#F7F4EC"; g.fill();
+          g.fillStyle="#1F1F1F"; g.font="700 18px "+F; g.fillText(fit(m[id].name,cw-24),x+12,y+cardH/2+6);
+        } else {
+          rr(x+1,y+1,cw-2,cardH-2,8); g.setLineDash([6,5]); g.strokeStyle="rgba(255,255,255,.35)"; g.lineWidth=2; g.stroke(); g.setLineDash([]);
+        }
+      });
+      y+=rowH;
+    }
+    label("SWEEP",cx,y+22);
+    // footer
+    g.fillStyle="#4F4F4F"; g.fillRect(0,H-44,W,44);
+    g.fillStyle="#FFFFFF"; g.font="500 12px "+LB; g.textAlign="right"; g.fillText("ACCADBR.COM",W-28,H-17); g.textAlign="left";
+  };
+  paint(null,null);
+  const imgs={}; let left=2;
+  const load=(k,src)=>{ const im=new Image(); im.onload=im.onerror=()=>{ if(im.naturalWidth) imgs[k]=im; if(--left===0){ const fin=()=>{ paint(imgs.logo,imgs.dragon); if(done) done(cv); }; (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(fin,fin); } }; im.src=src; };
+  load("logo","assets/acca-logo-white.png"); load("dragon","assets/acca-dragon-red.png");
+  return cv;
+}
+function copyText(t,msg){
+  const done=()=>toast(msg);
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done).catch(()=>fallback()); } else fallback();
+  function fallback(){ const ta=document.createElement("textarea"); ta.value=t; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); done(); }catch(e){ toast("Copy blocked. Select the text and copy it manually."); } ta.remove(); }
+}
+
+render();
+})();
+</script>
+
+
+<script>
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body></html>
