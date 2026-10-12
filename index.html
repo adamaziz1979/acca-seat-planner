@@ -664,7 +664,7 @@ async function importCsv(text){
 function renderAttend(){
   const m=byId(); const n=state.attending.filter(id=>m[id]).length;
   const f=ui.filter.toLowerCase();
-  const list=state.roster.filter(p=>!f||p.name.toLowerCase().includes(f)).slice().sort((a,b)=>(+b.level-+a.level)||a.name.localeCompare(b.name)); // highest level first, then A–Z
+  const list=state.roster.filter(p=>!f||p.name.toLowerCase().includes(f)).slice().sort((a,b)=>a.name.localeCompare(b.name)); // A–Z by name
   const s=state.settings;
   main.innerHTML=`
     <div class="panel">
