@@ -137,7 +137,7 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--lacquer)}
 .brow .rd{display:grid;place-items:center;font-size:.72rem;opacity:.8;text-align:center;line-height:1.1}
 .brow .rd.bad{color:#FFD27A;opacity:1}
 .zone-tag{font:500 .66rem var(--label);text-transform:uppercase;letter-spacing:.1em;color:#BBBBBB;margin:10px 0 4px 34px}
-.seat{position:relative;background:var(--bench);color:var(--ink);border:2px solid transparent;border-radius:8px;padding:.4rem .5rem;min-height:54px;text-align:left;font:inherit;cursor:pointer;display:flex;flex-direction:column;justify-content:center}
+.seat{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;position:relative;background:var(--bench);color:var(--ink);border:2px solid transparent;border-radius:8px;padding:.4rem .5rem;min-height:54px;text-align:left;font:inherit;cursor:pointer;display:flex;flex-direction:column;justify-content:center}
 .seat .nm{font:700 1rem/1.1 var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seat .sb{font-size:.75rem;color:var(--muted);display:flex;gap:.35rem;align-items:center}
 .seat.empty{background:transparent;border:2px dashed rgba(255,255,255,.3);color:#BBBBBB}
@@ -239,7 +239,7 @@ const SAMPLE = [
  ["Grace H",63,1,"E",0,0],["Nathan J",80,4,"R",0,1],["Olivia D",69,2,"E",0,0],["Sam R",86,5,"E",1,1],
  ["Emma G",66,3,"E",0,0],["Kai Y",77,1,"E",0,0],["Zoe A",59,4,"E",1,0],["Ahmed Z",90,3,"E",0,0,1],
  ["Lucy V",71,2,"R",0,0],["Josh E",83,4,"E",0,1,1],["Ivy Q",62,1,"E",0,0],["Will C",98,3,"E",0,0,1]
-].map((r,i)=>({id:"p"+(i+1),name:r[0],weight:r[1],level:r[2],side:r[3],stroke:!!r[4],rocket:!!r[5],engine:!!r[6]}));
+].map((r,i)=>({id:"p"+(i+1),name:r[0],weight:r[1],level:r[2],side:r[3],stroke:!!r[4],rocket:!!r[5],engine:!!r[6],canSweep:["Josh E","Will C"].includes(r[0]),canDrum:["Ivy Q","Zoe A"].includes(r[0])}));
 
 function isoToday(){
   const d=new Date(), z=n=>String(n).padStart(2,"0");
@@ -257,7 +257,7 @@ function freshState(){
     tab:"roster",
     roster:SAMPLE.map(p=>({...p})),
     attending:SAMPLE.slice(0,18).map(p=>p.id),
-    settings:{sessionType:"training",starters:"middle",trim:"neutral",drummer:"",sweep:"",tol:5,sessionDate:isoToday(),session:todayLabel()},
+    settings:{sessionType:"training",starters:"middle",trim:"neutral",drumSel:"",drumName:"",drumKg:"",sweepSel:"",sweepName:"",sweepKg:"",tol:5,sessionDate:isoToday(),session:todayLabel()},
     plan:null,
     sample:true
   };
@@ -266,8 +266,13 @@ let state;
 try{ const raw=localStorage.getItem(KEY); state=raw?JSON.parse(raw):null; }catch(e){ state=null; }
 if(!state||!Array.isArray(state.roster)) state=freshState();
 // An unedited sample roster saved before a sample field existed picks up the current sample values
-if(state.sample) state.roster.forEach(p=>{ const sp=SAMPLE.find(x=>x.id===p.id&&x.name===p.name); if(sp) p.engine=sp.engine; });
-state.settings=Object.assign({sessionType:"training",starters:"middle",trim:"neutral",drummer:"",sweep:"",tol:5,session:todayLabel()},state.settings||{});
+if(state.sample) state.roster.forEach(p=>{ const sp=SAMPLE.find(x=>x.id===p.id&&x.name===p.name); if(sp){ p.engine=sp.engine; p.canSweep=sp.canSweep; p.canDrum=sp.canDrum; } });
+state.settings=Object.assign({sessionType:"training",starters:"middle",trim:"neutral",drumSel:"",drumName:"",drumKg:"",sweepSel:"",sweepName:"",sweepKg:"",tol:5,session:todayLabel()},state.settings||{});
+// Old saves kept drummer/sweep as typed weights only; those are replaced by the role pickers
+delete state.settings.drummer; delete state.settings.sweep;
+// Left/right tolerance: whole kg from 0 to 10 (0 is a real setting, not "use the default")
+function tolKg(){ const t=state.settings.tol; const n=(t===""||t==null||isNaN(+t))?5:Math.round(+t); return Math.min(10,Math.max(0,n)); }
+state.settings.tol=tolKg();
 // Older saves had a typed session name and no date: start them on today's date
 if(!/^\d{4}-\d{2}-\d{2}$/.test(state.settings.sessionDate||"")) state.settings.sessionDate=isoToday();
 state.settings.session=dateLabel(state.settings.sessionDate);
@@ -295,12 +300,22 @@ function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg
 function median(arr){ if(!arr.length) return 75; const a=[...arr].sort((x,y)=>x-y), m=Math.floor(a.length/2); return a.length%2?a[m]:(a[m-1]+a[m])/2; }
 
 /* ---------- scoring ---------- */
+// Drummer / sweep: a roster person ticked Drum / Sweep, or a typed name (optional weight). Returns {id,name,kg} or null.
+function crewRole(role){
+  const s=state.settings, m=byId(), sel=s[role+"Sel"]||"";
+  if(sel==="other"){ const name=String(s[role+"Name"]||"").trim(); return name?{id:null,name,kg:+s[role+"Kg"]||0}:null; }
+  if(sel&&m[sel]) return {id:sel,name:m[sel].name,kg:+m[sel].weight||0};
+  return null;
+}
+function roleIds(){ return ["drum","sweep"].map(crewRole).filter(r=>r&&r.id).map(r=>r.id); }
+// Ticked attendees minus whoever is drumming or sweeping: these are the people who get paddling seats
+function paddlerIds(){ const m=byId(), ex=roleIds(); return state.attending.filter(id=>m[id]&&!ex.includes(id)); }
 function ctx(){
   const m=byId();
-  const att=state.attending.filter(id=>m[id]);
+  const att=paddlerIds();
   const s=state.settings;
   const lean = s.trim==="bow" ? -0.25 : s.trim==="stern" ? 0.25 : 0;
-  return {m, med:median(att.map(id=>+m[id].weight||0)), s, target:5.5+lean, drummer:+s.drummer||0, sweep:+s.sweep||0, race:s.sessionType==="race"};
+  return {m, med:median(att.map(id=>+m[id].weight||0)), s, target:5.5+lean, drummer:(crewRole("drum")||{}).kg||0, sweep:(crewRole("sweep")||{}).kg||0, race:s.sessionType==="race"};
 }
 function seatCost(p,row,side,c){
   let k=0; const lv=+p.level||1, w=+p.weight||0;
@@ -349,7 +364,7 @@ function evaluate(seats,c){
 }
 function optimise(prev,locks){
   const c=ctx();
-  const att=state.attending.filter(id=>c.m[id]);
+  const att=paddlerIds();
   const seats=new Array(SEATS).fill(null);
   const lk=new Array(SEATS).fill(false);
   const placed=new Set();
@@ -426,7 +441,7 @@ function warnings(seats,c,ev){
   for(let r=1;r<=ROWS;r++){ const a=seats[2*r-2],b=seats[2*r-1]; if(a&&b&&+c.m[a].level<=2&&+c.m[b].level<=2) w.push(`Row ${r}: two new starters side by side (${c.m[a].name} and ${c.m[b].name}).`); }
   [4,5].forEach(i=>{ const id=seats[i]; if(id&&+c.m[id].level<=2) w.push(`Row 3: ${c.m[id].name} is ${lvName(+c.m[id].level)}; front paddlers must stay in stroke, so Level 3+ suits row 3.`); });
   if(seats.filter(id=>id&&+c.m[id].level>=4).length>=5 && !seats.slice(6,14).some(id=>id&&+c.m[id].level>=4)) w.push("No Level 4–5 paddler in the engine room (rows 4–7) to lead calls such as a power series.");
-  const diff=Math.round(Math.abs(ev.L-ev.R)); const tol=+c.s.tol||5;
+  const diff=Math.round(Math.abs(ev.L-ev.R)); const tol=tolKg();
   if(diff>tol) w.push(`${ev.L>ev.R?"Left":"Right"} side is ${diff} kg heavier (tolerance ${tol} kg).`);
   const off=ev.com-5.5;
   if(Math.abs(off)>0.3) w.push(`Boat sits ${off<0?"bow":"stern"} heavy (centre of weight at row ${ev.com.toFixed(1)}).`);
@@ -450,10 +465,10 @@ function renderLogic(){
   const trimTxt={neutral:"level",bow:"slightly bow heavy",stern:"slightly stern heavy"}[s.trim]||"level";
   const startTxt=s.starters==="back"?"at the back, out of the timing line":"in the middle, beside experienced paddlers";
   const roles=[
-    ["Row 1","Strokes: ticked Stroke, Level 5 preferred, Level 4 accepted","Set the pace for the whole boat and hold it under pressure from behind."],
-    ["Row 2","Level 4–5","Follow the strokes closely and pass the timing back."],
-    ["Row 3","Level 3+ paddlers who keep timing, often lighter","The front is tight, and the boat follows the front rows."],
-    ["Rows 4–7","Engine room: ticked Engine, heavier and strong, with at least one Level 4–5 to lead calls","Power, and weight in the middle keeps the boat balanced."],
+    ["Row 1","Strokes: ticked Stroke, XP Level 5 preferred, XP Level 4 accepted","Set the pace for the whole boat and hold it under pressure from behind."],
+    ["Row 2","XP Level 4–5","Follow the strokes closely and pass the timing back."],
+    ["Row 3","XP Level 3+ paddlers who keep timing, often lighter","The front is tight, and the boat follows the front rows."],
+    ["Rows 4–7","Engine room: ticked Engine, heavier and strong, with at least one XP Level 4–5 to lead calls","Power, and weight in the middle keeps the boat balanced."],
     ["Rows 8–10","Ticked Rocket, and skilled paddlers","The water at the back is already moving and harder to paddle in."],
     ["Empty seats","Go to the back","So the front rows always stay full."]
   ];
@@ -516,7 +531,8 @@ function renderLogic(){
       <ul class="logic-list">
         <li>Race days only: left-only and right-only paddlers sit on their side. At training, paddlers swap sides through the session, so preferred sides are ignored. Current session type: <span class="setting">${s.sessionType==="race"?"race":"training"}</span>.</li>
         <li>Rows 1 and 2 are always filled.</li>
-        <li>One standard boat: 10 rows, 20 seats. The drummer and sweep are not seated.</li>
+        <li>One standard boat: 10 rows, 20 seats. Whoever is drumming or sweeping isn't given a paddling seat.</li>
+        <li>Only people ticked Drum or Sweep on the Roster can be picked as drummer or sweep, unless a name is typed in under Other.</li>
       </ul>
     </div>
     <div class="panel">
@@ -530,7 +546,7 @@ function renderLogic(){
       <h2>Experience levels</h2>
       <p class="muted">No Australian or international body publishes an official 1–5 paddler scale. Each level below is built from what official sources say a paddler at that stage can do. Where one level ends and the next begins is a coaching judgement, so ACCA coaches have the final say.</p>
       ${levels.map(l=>`<div class="lvl-crit">
-        <h3><span class="lvl lvl${l.n}">L${l.n}</span>${l.name}<small>Pathway stage: ${l.stage}</small></h3>
+        <h3><span class="lvl lvl${l.n}">XP${l.n}</span>${l.name}<small>Pathway stage: ${l.stage}</small></h3>
         <ul class="logic-list">${l.crit.map(c=>`<li>${c}</li>`).join("")}</ul>
         <p><b>Seats:</b> ${l.seats}</p>
         <p class="muted">Based on: ${l.src}</p>
@@ -540,8 +556,8 @@ function renderLogic(){
     <div class="panel">
       <h2>Balance</h2>
       <ul class="logic-list">
-        <li>Left and right totals within <span class="setting">${esc(s.tol)} kg</span> of each other. The further out, the bigger the penalty.</li>
-        <li>Centre of weight aims for the middle of the boat (row 5.5). Front/Back balance: <span class="setting">${trimTxt}</span>. Drummer and sweep weights count when entered.</li>
+        <li>Left and right totals within <span class="setting">${tolKg()} kg</span> of each other. The further out, the bigger the penalty.</li>
+        <li>Centre of weight aims for the middle of the boat (row 5.5). Front/Back balance: <span class="setting">${trimTxt}</span>. The drummer's and sweep's weights count when they're chosen: their roster weight, or the weight typed in for someone not on the roster.</li>
         <li>Row partners within 10 kg of each other. Bigger gaps show in yellow beside the row.</li>
       </ul>
       <div class="row-actions"><button class="btn small" id="toSettings">Change settings</button></div>
@@ -560,7 +576,7 @@ function renderLogic(){
       <h2>Reading the seat plan</h2>
       <ul class="logic-list">
         <li>Card colour shows weight: pale for lighter, dark red for heavier, in five bands from the lightest to the heaviest paddler in the boat. The key sits under the sweep.</li>
-        <li>The L1–L5 badge is the paddler's level. On race days, L or R after the weight means that side only.</li>
+        <li>The XP1–XP5 badge is the paddler's experience level. On race days, L or R after the weight means that side only.</li>
         <li>L+8 or R+5 beside a row shows which side of that row is heavier, and by how many kg.</li>
         <li>On race days, a white dashed outline means a paddler is on the wrong side. A gold outline is the seat you've selected.</li>
         <li>Weights and placement notes stay on this device. The shared plan shows names and seats only.</li>
@@ -581,27 +597,30 @@ function renderRoster(){
     <tr data-id="${p.id}">
       <td><input class="name" type="text" data-f="name" value="${esc(p.name)}" aria-label="Name"></td>
       <td><input type="number" data-f="weight" value="${esc(p.weight)}" min="30" max="160" step="0.5" aria-label="Weight in kg"></td>
-      <td><select data-f="level" aria-label="Level">${[1,2,3,4,5].map(l=>`<option value="${l}" ${+p.level===l?"selected":""}>${l} · ${LEVEL_NAMES[l]}</option>`).join("")}</select></td>
+      <td><select data-f="level" aria-label="XP level">${[1,2,3,4,5].map(l=>`<option value="${l}" ${+p.level===l?"selected":""}>${l} · ${LEVEL_NAMES[l]}</option>`).join("")}</select></td>
       <td><select data-f="side" aria-label="Side">${[["E","Either"],["L","Left only"],["R","Right only"]].map(([v,t])=>`<option value="${v}" ${p.side===v?"selected":""}>${t}</option>`).join("")}</select></td>
       <td class="c"><input type="checkbox" data-f="stroke" ${p.stroke?"checked":""} aria-label="Stroke (row 1)"></td>
       <td class="c"><input type="checkbox" data-f="engine" ${p.engine?"checked":""} aria-label="Engine (rows 4 to 7)"></td>
       <td class="c"><input type="checkbox" data-f="rocket" ${p.rocket?"checked":""} aria-label="Rocket (back of boat)"></td>
+      <td class="c"><input type="checkbox" data-f="canSweep" ${p.canSweep?"checked":""} aria-label="Can sweep"></td>
+      <td class="c"><input type="checkbox" data-f="canDrum" ${p.canDrum?"checked":""} aria-label="Can drum"></td>
       <td class="c"><button class="btn small" data-del="${p.id}" aria-label="Remove ${esc(p.name)}">Remove</button></td>
     </tr>`).join("");
   main.innerHTML=`
     ${state.sample?`<div class="panel"><p><strong>This roster is sample data.</strong> Replace it with your club's paddlers, by editing below or importing a CSV.</p><div class="row-actions"><button class="btn" id="clearSample">Clear sample roster</button></div></div>`:""}
     <div class="panel">
       <h2>Roster</h2>
-      <p class="muted">Levels run from 1 (new starter) to 5 (lead paddler). <a href="#levels" id="lvlHelp">What each level means</a>.</p>
+      <p class="muted">XP levels run from 1 (new starter) to 5 (lead paddler). <a href="#levels" id="lvlHelp">What each XP level means</a>.</p>
       <ul class="logic-list muted">
         <li>Stroke (row 1)</li>
         <li>Engine (rows 4–7)</li>
         <li>Rocket (rows 8–10)</li>
       </ul>
+      <p class="muted">Role: Sweep and Drum mark who can steer or drum. Only they appear in the Sweep and Drummer lists on Who's paddling.</p>
       <p class="muted">Tick any that apply. Paddlers' preferred side only applies on race days; at training, paddlers swap sides. Paddler weights and XP levels never appear in the shared plan.</p>
       <div class="roster-wrap"><table class="roster">
-        <thead><tr><th rowspan="2">Name</th><th rowspan="2">Weight (kg)</th><th rowspan="2">Level</th><th rowspan="2">Side</th><th colspan="3" class="grp">Section</th><th rowspan="2"><span class="sr">Remove</span></th></tr><tr><th class="c">Stroke</th><th class="c">Engine</th><th class="c">Rocket</th></tr></thead>
-        <tbody>${rows||`<tr><td colspan="8" class="empty-state">No paddlers yet. Add one below or import a CSV.</td></tr>`}</tbody>
+        <thead><tr><th rowspan="2">Name</th><th rowspan="2">Weight (kg)</th><th rowspan="2">XP Level</th><th rowspan="2">Side</th><th colspan="3" class="grp">Section</th><th colspan="2" class="grp">Role</th><th rowspan="2"><span class="sr">Remove</span></th></tr><tr><th class="c">Stroke</th><th class="c">Engine</th><th class="c">Rocket</th><th class="c">Sweep</th><th class="c">Drum</th></tr></thead>
+        <tbody>${rows||`<tr><td colspan="10" class="empty-state">No paddlers yet. Add one below or import a CSV.</td></tr>`}</tbody>
       </table></div>
       <div class="row-actions" style="margin-top:.75rem">
         <button class="btn primary" id="addP">Add paddler</button>
@@ -610,12 +629,12 @@ function renderRoster(){
     </div>
     <div class="panel">
       <h2>Import or export</h2>
-      <p class="muted">CSV columns: name, weight, level, side (L, R or E), stroke (Y/N), rocket (Y/N), engine (Y/N). Engine is optional, so older CSVs still import. Importing replaces the roster. Use export to pass the roster to another coach.</p>
+      <p class="muted">CSV columns: name, weight, level, side (L, R or E), stroke (Y/N), rocket (Y/N), engine (Y/N), sweep (Y/N), drum (Y/N). Importing replaces the roster. Use export to pass the roster to another coach.</p>
       <div class="row-actions" style="margin-bottom:.6rem">
         <label class="btn" for="csvFile">Choose CSV file</label><input id="csvFile" type="file" accept=".csv,text/csv" class="sr">
         <button class="btn" id="exportCsv">Copy roster as CSV</button>
       </div>
-      <textarea id="csvText" aria-label="Paste CSV" placeholder="name,weight,level,side,stroke,rocket,engine&#10;Sarah K,64,5,E,Y,N,N"></textarea>
+      <textarea id="csvText" aria-label="Paste CSV" placeholder="name,weight,level,side,stroke,rocket,engine,sweep,drum&#10;Sarah K,64,5,E,Y,N,N,N,N"></textarea>
       <div class="row-actions" style="margin-top:.5rem"><button class="btn" id="importCsv">Import pasted CSV</button></div>
     </div>`;
   main.querySelectorAll("tbody tr[data-id]").forEach(tr=>{
@@ -638,14 +657,14 @@ function renderRoster(){
   if(cs) cs.onclick=async()=>{ if(!(await ask("Clear the sample roster? This removes all 24 sample paddlers.","Clear roster"))) return; state.roster=[]; state.attending=[]; state.plan=null; state.sample=false; save(); render(); };
   document.getElementById("addP").onclick=()=>{
     const id="p"+Date.now().toString(36);
-    state.roster.push({id,name:"New paddler",weight:75,level:1,side:"E",stroke:false,engine:false,rocket:false});
+    state.roster.push({id,name:"New paddler",weight:75,level:1,side:"E",stroke:false,engine:false,rocket:false,canSweep:false,canDrum:false});
     state.sample=false; save(); render();
     const inp=main.querySelector(`tr[data-id="${id}"] input.name`); if(inp){ inp.focus(); inp.select(); }
   };
   document.getElementById("csvFile").onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>importCsv(r.result); r.readAsText(f); };
   document.getElementById("importCsv").onclick=()=>importCsv(document.getElementById("csvText").value);
   document.getElementById("exportCsv").onclick=()=>{
-    const lines=["name,weight,level,side,stroke,rocket,engine"].concat(state.roster.map(p=>[`"${p.name.replace(/"/g,'""')}"`,p.weight,p.level,p.side,p.stroke?"Y":"N",p.rocket?"Y":"N",p.engine?"Y":"N"].join(",")));
+    const lines=["name,weight,level,side,stroke,rocket,engine,sweep,drum"].concat(state.roster.map(p=>[`"${p.name.replace(/"/g,'""')}"`,p.weight,p.level,p.side,p.stroke?"Y":"N",p.rocket?"Y":"N",p.engine?"Y":"N",p.canSweep?"Y":"N",p.canDrum?"Y":"N"].join(",")));
     copyText(lines.join("\n"),"Roster copied as CSV");
   };
 }
@@ -665,7 +684,7 @@ function parseCsv(text){
 async function importCsv(text){
   const rows=parseCsv(text||""); if(!rows.length){ toast("No rows found in that CSV"); return; }
   let start=0; const h=rows[0].map(x=>x.trim().toLowerCase());
-  let idx={name:0,weight:1,level:2,side:3,stroke:4,rocket:5,engine:6};
+  let idx={name:0,weight:1,level:2,side:3,stroke:4,rocket:5,engine:6,sweep:7,drum:8};
   if(h.includes("name")){ start=1; Object.keys(idx).forEach(k=>{ const j=h.indexOf(k); idx[k]=j; }); }
   const yes=v=>/^(y|yes|true|1)$/i.test((v||"").trim());
   const sideV=v=>{ v=(v||"").trim().toUpperCase(); return v.startsWith("L")?"L":v.startsWith("R")?"R":"E"; };
@@ -673,7 +692,7 @@ async function importCsv(text){
   rows.slice(start).forEach((r,n)=>{
     const name=(r[idx.name]||"").trim(); const w=parseFloat(r[idx.weight]); const lv=parseInt(r[idx.level],10);
     if(!name||!(w>0)||!(lv>=1&&lv<=5)){ bad.push(n+start+1); return; }
-    list.push({id:"p"+Date.now().toString(36)+n,name,weight:w,level:lv,side:idx.side>=0?sideV(r[idx.side]):"E",stroke:idx.stroke>=0&&yes(r[idx.stroke]),rocket:idx.rocket>=0&&yes(r[idx.rocket]),engine:idx.engine>=0&&yes(r[idx.engine])});
+    list.push({id:"p"+Date.now().toString(36)+n,name,weight:w,level:lv,side:idx.side>=0?sideV(r[idx.side]):"E",stroke:idx.stroke>=0&&yes(r[idx.stroke]),rocket:idx.rocket>=0&&yes(r[idx.rocket]),engine:idx.engine>=0&&yes(r[idx.engine]),canSweep:idx.sweep>=0&&yes(r[idx.sweep]),canDrum:idx.drum>=0&&yes(r[idx.drum])});
   });
   if(!list.length){ toast("No valid rows. Each row needs a name, weight and level 1–5."); return; }
   if(!(await ask(`Replace the roster with ${list.length} paddlers from this CSV?${bad.length?` ${bad.length} row(s) skipped (line ${bad.slice(0,5).join(", ")}).`:""}`,"Replace roster"))) return;
@@ -681,8 +700,21 @@ async function importCsv(text){
   toast(`Imported ${list.length} paddlers`);
 }
 
+// Options for the Drummer / Sweep pickers: people ticked for the role on the Roster, then "Other (type name)"
+function roleOptions(role,noneLabel){
+  const s=state.settings, sel=s[role+"Sel"]||"", other=role==="drum"?"sweep":"drum";
+  const otherId=(crewRole(other)||{}).id;
+  const people=state.roster.filter(p=>role==="drum"?p.canDrum:p.canSweep).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  let o=`<option value="" ${sel===""?"selected":""}>${noneLabel}</option>`;
+  o+=people.map(p=>`<option value="${p.id}" ${sel===p.id?"selected":""} ${otherId===p.id?"disabled":""}>${esc(p.name)}${otherId===p.id?(role==="drum"?" (sweeping)":" (drumming)"):""}</option>`).join("");
+  if(!people.length) o+=`<option disabled>Tick ${role==="drum"?"Drum":"Sweep"} on the Roster to list people</option>`;
+  o+=`<option value="other" ${sel==="other"?"selected":""}>Other (type name)</option>`;
+  return o;
+}
 function renderAttend(){
-  const m=byId(); const n=state.attending.filter(id=>m[id]).length;
+  const m=byId(); const n=paddlerIds().length;
+  const dr=crewRole("drum"), sw=crewRole("sweep");
+  const roleNote=id=>dr&&dr.id===id?" · drumming (not seated)":sw&&sw.id===id?" · sweeping (not seated)":"";
   const f=ui.filter.toLowerCase();
   const list=state.roster.filter(p=>!f||p.name.toLowerCase().includes(f)).slice().sort((a,b)=>a.name.localeCompare(b.name)); // A–Z by name
   const s=state.settings;
@@ -702,7 +734,7 @@ function renderAttend(){
       <div class="att-grid">${list.map(p=>`
         <label class="att ${state.attending.includes(p.id)?"on":""}">
           <input type="checkbox" data-att="${p.id}" ${state.attending.includes(p.id)?"checked":""}>
-          <span><span class="cond" style="font-weight:700;font-size:1.05rem">${esc(p.name)}</span><br><span class="meta">${lvName(+p.level)}${p.side!=="E"?`, ${p.side==="L"?"left":"right"} only`:""}${p.stroke?", stroke":""}${p.engine?", engine":""}${p.rocket?", rocket":""}</span></span>
+          <span><span class="cond" style="font-weight:700;font-size:1.05rem">${esc(p.name)}</span><br><span class="meta">XP${p.level} (${LEVEL_NAMES[p.level]||""})${p.side!=="E"?`, ${p.side==="L"?"left":"right"} only`:""}${p.stroke?", stroke":""}${p.engine?", engine":""}${p.rocket?", rocket":""}${roleNote(p.id)}</span></span>
         </label>`).join("")||`<p class="muted">No paddlers match.</p>`}</div>
     </div>
     <div class="panel">
@@ -719,9 +751,11 @@ function renderAttend(){
           <option value="neutral" ${s.trim==="neutral"?"selected":""}>Level</option>
           <option value="bow" ${s.trim==="bow"?"selected":""}>Slightly bow heavy</option>
           <option value="stern" ${s.trim==="stern"?"selected":""}>Slightly stern heavy</option></select></div>
-        <div><label for="tol">Left/right tolerance (kg)</label><input id="tol" type="number" min="0" max="30" value="${esc(s.tol)}"></div>
-        <div><label for="drum">Drummer weight (kg, optional)</label><input id="drum" type="number" min="0" max="160" value="${esc(s.drummer)}"></div>
-        <div><label for="sweep">Sweep weight (kg, optional)</label><input id="sweep" type="number" min="0" max="160" value="${esc(s.sweep)}"></div>
+        <div><label for="tol">Left/right tolerance (kg)</label><select id="tol">${[0,1,2,3,4,5,6,7,8,9,10].map(k=>`<option value="${k}" ${tolKg()===k?"selected":""}>${k} kg</option>`).join("")}</select></div>
+        <div><label for="drumSel">Drummer</label><select id="drumSel">${roleOptions("drum","None")}</select>
+          ${s.drumSel==="other"?`<input id="drumName" type="text" placeholder="Drummer's name" value="${esc(s.drumName||"")}" style="margin-top:.4rem" aria-label="Drummer's name"><input id="drumKg" type="number" min="0" max="160" placeholder="Weight kg (optional)" value="${esc(s.drumKg||"")}" style="margin-top:.4rem" aria-label="Drummer's weight in kg, optional">`:""}</div>
+        <div><label for="sweepSel">Sweep</label><select id="sweepSel">${roleOptions("sweep","Not set")}</select>
+          ${s.sweepSel==="other"?`<input id="sweepName" type="text" placeholder="Sweep's name" value="${esc(s.sweepName||"")}" style="margin-top:.4rem" aria-label="Sweep's name"><input id="sweepKg" type="number" min="0" max="160" placeholder="Weight kg (optional)" value="${esc(s.sweepKg||"")}" style="margin-top:.4rem" aria-label="Sweep's weight in kg, optional">`:""}</div>
       </div>
       <div class="row-actions" style="margin-top:1rem">
         <button class="btn primary" id="gen" ${n>SEATS||n<10?"disabled":""}>${state.plan?"Build a new draft plan":"Build draft plan"}</button>
@@ -740,7 +774,11 @@ function renderAttend(){
   document.getElementById("allOff").onclick=()=>{ state.attending=[]; save(); renderAttend(); };
   const bind=(id,key,num)=>{ document.getElementById(id).addEventListener("change",e=>{ s[key]=num?(e.target.value===""?"":+e.target.value):e.target.value; save(); if(key==="session") render(); }); };
   document.getElementById("sess").addEventListener("change",e=>{ s.sessionDate=e.target.value||isoToday(); s.session=dateLabel(s.sessionDate); save(); render(); });
-  bind("stype","sessionType"); bind("starters","starters"); bind("trim","trim"); bind("tol","tol",true); bind("drum","drummer",true); bind("sweep","sweep",true);
+  bind("stype","sessionType"); bind("starters","starters"); bind("trim","trim"); bind("tol","tol",true); ["drum","sweep"].forEach(r=>{
+    document.getElementById(r+"Sel").addEventListener("change",e=>{ s[r+"Sel"]=e.target.value; save(); renderAttend(); });
+    const nm=document.getElementById(r+"Name"); if(nm) nm.addEventListener("change",e=>{ s[r+"Name"]=e.target.value.trim(); save(); });
+    const kg=document.getElementById(r+"Kg"); if(kg) kg.addEventListener("change",e=>{ s[r+"Kg"]=e.target.value===""?"":+e.target.value; save(); });
+  });
   document.getElementById("gen").onclick=()=>{
     const b=document.getElementById("gen"); b.disabled=true; b.textContent="Balancing the boat…";
     setTimeout(()=>{
@@ -756,7 +794,8 @@ function renderAttend(){
 function syncPlan(){
   if(!state.plan) return;
   const m=byId();
-  state.plan.seats=state.plan.seats.map((id,i)=>{ if(id&&(!m[id]||!state.attending.includes(id))){ state.plan.locks[i]=false; return null; } return id; });
+  const pad=paddlerIds();
+  state.plan.seats=state.plan.seats.map((id,i)=>{ if(id&&(!m[id]||!pad.includes(id))){ state.plan.locks[i]=false; return null; } return id; });
 }
 function heatScale(seats,c){
   const ws=seats.filter(Boolean).map(id=>+c.m[id].weight||0);
@@ -778,7 +817,7 @@ function seatHTML(i,seats,c,approved,viol){
   const label=p?`Row ${rowOf(i)} ${sideName(sideOf(i))}: ${p.name}`:`Row ${rowOf(i)} ${sideName(sideOf(i))}: empty`;
   return `<button class="seat ${p?"w"+heatBin(+p.weight||0,c):"empty"} ${sel?"sel":""} ${viol.has(i)?"viol":""}" data-seat="${i}" ${approved?"disabled":""} aria-label="${esc(label)}${locked?", locked":""}">
     ${locked?`<span class="lk">${LOCK_SVG}</span>`:""}
-    ${p?`<span class="nm">${esc(p.name)}</span><span class="sb"><span class="lvl lvl${p.level}" title="${lvName(+p.level)}">L${p.level}</span>${p.weight} kg${c.race&&p.side!=="E"?` ${p.side}`:""}</span>`:`<span class="nm" style="font-weight:600">Empty</span><span class="sb">${ui.pick?"Tap to place":"&nbsp;"}</span>`}
+    ${p?`<span class="nm">${esc(p.name)}</span><span class="sb"><span class="lvl lvl${p.level}" title="XP ${p.level}: ${LEVEL_NAMES[p.level]||""}">XP${p.level}</span>${p.weight} kg${c.race&&p.side!=="E"?` ${p.side}`:""}</span>`:`<span class="nm" style="font-weight:600">Empty</span><span class="sb">${ui.pick?"Tap to place":"&nbsp;"}</span>`}
   </button>`;
 }
 function renderPlan(){
@@ -787,8 +826,9 @@ function renderPlan(){
   const c=ctx(); const seats=state.plan.seats; const ev=evaluate(seats,c); const warns=warnings(seats,c,ev);
   const approved=state.plan.status==="approved";
   const viol=new Set(); if(c.race) seats.forEach((id,i)=>{ if(!id) return; const p=c.m[id]; if((p.side==="L"&&sideOf(i)!==0)||(p.side==="R"&&sideOf(i)!==1)) viol.add(i); });
-  const unseated=state.attending.filter(id=>c.m[id]&&!seats.includes(id));
-  const diff=Math.round(Math.abs(ev.L-ev.R)); const tol=+c.s.tol||5;
+  const unseated=paddlerIds().filter(id=>!seats.includes(id));
+  const dr=crewRole("drum"), sw=crewRole("sweep");
+  const diff=Math.round(Math.abs(ev.L-ev.R)); const tol=tolKg();
   c.heat=heatScale(seats,c);
   let boat=""; const zones={1:"Strokes and front",4:"Engine room",8:"Back"};
   for(let r=1;r<=ROWS;r++){
@@ -818,9 +858,9 @@ function renderPlan(){
         ${bar}
         <div class="boat haslogo" aria-label="Boat seating, row 1 at the front">
           <div class="head">${headArt}Bow</div>
-          <div class="endseat">Drummer${c.drummer?` (${c.drummer} kg)`:""}</div>
+          <div class="endseat">Drummer${dr?`: <b>${esc(dr.name)}</b>`:""}${c.drummer?` (${c.drummer} kg)`:""}</div>
           ${boat}
-          <div class="endseat" style="margin-top:8px">Sweep${c.sweep?` (${c.sweep} kg)`:""}</div>
+          <div class="endseat" style="margin-top:8px">Sweep${sw?`: <b>${esc(sw.name)}</b>`:""}${c.sweep?` (${c.sweep} kg)`:""}</div>
           ${heatKey(c)}
         </div></div>
       </div>
@@ -839,7 +879,7 @@ function renderPlan(){
             ${approved?`<button class="btn primary" id="toShare">Share with the team</button><button class="btn" id="unapprove">Edit again</button>`:
             `<button class="btn primary" id="approve">Approve plan</button><button class="btn" id="regen">Re-balance (keeps locked seats)</button>${state.plan.locks.some(Boolean)?`<button class="btn" id="unlockAll">Unlock all seats (${state.plan.locks.filter(Boolean).length})</button>`:""}<button class="btn" id="toAttend">Change who's paddling</button>`}
           </div>
-          ${approved?"":`<p class="muted" style="margin-top:.5rem">Tap a seat, then another seat to swap them. Lock seats you want to keep before re-balancing.</p>`}
+          ${approved?"":`<p class="muted" style="margin-top:.5rem">Tap a seat, then another seat to swap them. Press and hold a seat to lock or unlock it. Locked seats stay put when you re-balance.</p>`}
         </div>
         <div class="panel">
           <h2>Placement notes</h2>
@@ -848,7 +888,26 @@ function renderPlan(){
         </div>
       </div>
     </div>`;
-  main.querySelectorAll("[data-seat]").forEach(b=>b.addEventListener("click",()=>seatTap(+b.dataset.seat)));
+  // Tap = select / swap. Press and hold (half a second) = lock or unlock that seat.
+  main.querySelectorAll("[data-seat]").forEach(b=>{
+    const i=+b.dataset.seat; let t=null, sx=0, sy=0;
+    const cancel=()=>{ clearTimeout(t); t=null; };
+    b.addEventListener("pointerdown",e=>{
+      if(approved||!state.plan.seats[i]) return;
+      sx=e.clientX; sy=e.clientY; cancel();
+      t=setTimeout(()=>{
+        t=null; ui.holdAt=Date.now();
+        state.plan.locks[i]=!state.plan.locks[i]; ui.sel=null; ui.pick=null; save();
+        if(navigator.vibrate) navigator.vibrate(30);
+        toast(state.plan.locks[i]?"Seat locked":"Seat unlocked"); renderPlan();
+      },500);
+    });
+    b.addEventListener("pointermove",e=>{ if(t&&Math.hypot(e.clientX-sx,e.clientY-sy)>10) cancel(); });
+    ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,cancel));
+    b.addEventListener("contextmenu",e=>e.preventDefault());
+    // The click that follows a hold must not also select the seat
+    b.addEventListener("click",()=>{ if(Date.now()-(ui.holdAt||0)<800) return; seatTap(i); });
+  });
   main.querySelectorAll("[data-pick]").forEach(b=>b.addEventListener("click",()=>{ ui.sel=null; ui.pick= ui.pick===b.dataset.pick?null:b.dataset.pick; renderPlan(); }));
   const q=id=>document.getElementById(id);
   if(q("lockBtn")) q("lockBtn").onclick=()=>{ state.plan.locks[ui.sel]=!state.plan.locks[ui.sel]; save(); renderPlan(); };
@@ -888,9 +947,12 @@ function seatTap(i){
 function shareText(){
   const m=byId(); const s=state.plan.seats;
   const nm=id=>id&&m[id]?m[id].name:"—";
+  const dr=crewRole("drum"), sw=crewRole("sweep");
   const lines=[`Seating plan: ${state.settings.session}`,""];
+  if(dr) lines.push(`Drummer: ${dr.name}`);
   const w=Math.max(8,...s.filter(Boolean).map(id=>nm(id).length));
   for(let r=1;r<=ROWS;r++) lines.push(`Row ${String(r).padStart(2," ")}  ${nm(s[2*r-2]).padEnd(w," ")}  |  ${nm(s[2*r-1])}`);
+  if(sw) lines.push(`Sweep: ${sw.name}`);
   lines.push("","Left side first, then right. Row 1 is the front.");
   return lines.join("\n");
 }
@@ -959,7 +1021,8 @@ function drawImage(cv,done){
   const F="'Source Sans 3','Source Sans Pro',Arial,sans-serif", LB="Roboto,Arial,sans-serif";
   const fit=(t,max)=>{ if(g.measureText(t).width<=max) return t; while(t.length>1&&g.measureText(t+"…").width>max) t=t.slice(0,-1); return t+"…"; };
   const rr=(x,y,w,hh,r)=>{ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+hh,r); g.arcTo(x+w,y+hh,x,y+hh,r); g.arcTo(x,y+hh,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); };
-  const label=(t,x,y,align)=>{ g.font="500 11px "+LB; g.fillStyle="#BBBBBB"; g.textAlign=align||"center"; g.fillText(t.split("").join(String.fromCharCode(8202)),x,y); g.textAlign="left"; };
+  const dr=crewRole("drum"), sw=crewRole("sweep");
+  const label=(t,x,y,align,col)=>{ g.font=(col?"700 12px ":"500 11px ")+LB; g.fillStyle=col||"#BBBBBB"; g.textAlign=align||"center"; g.fillText(t.split("").join(String.fromCharCode(8202)),x,y); g.textAlign="left"; };
   const paint=(logo,dragon)=>{
     g.fillStyle="#FFFFFF"; g.fillRect(0,0,W,H);
     // header band
@@ -975,7 +1038,7 @@ function drawImage(cv,done){
     g.fillStyle="#1F1F1F"; g.fill();
     // bow: dragon, BOW, DRUMMER
     if(dragon){ const dw=110, dh=dw*dragon.height/dragon.width; g.drawImage(dragon,cx-dw/2,hTop+26,dw,dh); }
-    label("BOW",cx,hTop+104); label("DRUMMER",cx,hTop+134);
+    label("BOW",cx,hTop+104); label(dr?`DRUMMER: ${dr.name.toUpperCase()}`:"DRUMMER",cx,hTop+134,"center",dr?"#FFFFFF":null);
     // rows
     const numX=hx0+30, cx0=hx0+52, gap=8, cw=(hx1-24-cx0-gap)/2;
     const zones={1:"STROKES AND FRONT",4:"ENGINE ROOM",8:"BACK"};
@@ -994,7 +1057,7 @@ function drawImage(cv,done){
       });
       y+=rowH;
     }
-    label("SWEEP",cx,y+22);
+    label(sw?`SWEEP: ${sw.name.toUpperCase()}`:"SWEEP",cx,y+22,"center",sw?"#FFFFFF":null);
     // footer
     g.fillStyle="#4F4F4F"; g.fillRect(0,H-44,W,44);
     g.fillStyle="#FFFFFF"; g.font="500 12px "+LB; g.textAlign="right"; g.fillText("ACCADBR.COM",W-28,H-17); g.textAlign="left";
