@@ -1,6 +1,6 @@
 {
-  "name": "Dragon boat seat planner",
-  "short_name": "Seat planner",
+  "name": "ACCA Seat Planner",
+  "short_name": "ACCA Seat Planner",
   "description": "Build a balanced seating plan for one dragon boat. Works offline at the dock.",
   "start_url": "./",
   "scope": "./",

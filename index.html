@@ -2,14 +2,14 @@
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Dragon boat seat planner</title>
+<title>ACCA Seat Planner</title>
 <meta name="theme-color" content="#ED1C24">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="googlebot" content="noindex, nofollow, noarchive">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Seat planner">
+<meta name="apple-mobile-web-app-title" content="ACCA Seat Planner">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -84,6 +84,7 @@ main{padding:1rem}
 /* keeps the count with its button: beside it, or just under it on narrow screens */
 .regen-wrap{display:inline-flex;flex-wrap:wrap;align-items:center;column-gap:.5rem;row-gap:.2rem}
 .why{margin-top:.6rem;font-size:.85rem}
+.wx{margin:.1rem 0 .6rem;font-size:.95rem}
 .why summary{cursor:pointer;font:500 .72rem var(--label);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 .why p{margin:.4rem 0}
 .why-t{border-collapse:collapse;width:100%;max-width:360px;margin:.3rem 0}
@@ -284,10 +285,22 @@ function isoToday(){
   return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
 }
 // Session name is built from the chosen date, e.g. "Mon, 12 Oct session"
+// ACCA training sessions (Sydney time). Day numbers: 0 Sun ... 6 Sat. end = finishing hour, 24h.
+const TRAINING={2:{time:"6:30–8:30pm",end:20.5},4:{time:"6:30–8:30pm",end:20.5},6:{time:"8:30–10:30am",end:10.5}};
+const isoOf=dt=>{ const z=n=>String(n).padStart(2,"0"); return `${dt.getFullYear()}-${z(dt.getMonth()+1)}-${z(dt.getDate())}`; };
+const dateOf=iso=>{ const [y,m,d]=String(iso||"").split("-").map(Number); const dt=new Date(y,(m||1)-1,d||1); return isNaN(dt)?new Date():dt; };
+// Next training session: today if one is on and not yet finished, otherwise the next Tue, Thu or Sat
+function nextSessionIso(){
+  const now=new Date(), hr=now.getHours()+now.getMinutes()/60;
+  for(let k=0;k<8;k++){ const dt=new Date(now.getFullYear(),now.getMonth(),now.getDate()+k); const t=TRAINING[dt.getDay()];
+    if(t && (k>0 || hr<t.end)) return isoOf(dt); }
+  return isoToday();
+}
+// Session name from the date, with the training time on Tue, Thu and Sat, e.g. "Tue, 14 Oct · 6:30–8:30pm"
 function dateLabel(iso){
-  const [y,m,d]=String(iso||isoToday()).split("-").map(Number);
-  const dt=new Date(y,(m||1)-1,d||1);
-  return (isNaN(dt)?new Date():dt).toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"})+" session";
+  const dt=dateOf(iso||isoToday()); const t=TRAINING[dt.getDay()];
+  const day=dt.toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"});
+  return t ? `${day} · ${t.time}` : `${day} session`;
 }
 function todayLabel(){ return dateLabel(isoToday()); }
 function freshState(){
@@ -295,7 +308,7 @@ function freshState(){
     tab:"roster",
     roster:SAMPLE.map(p=>({...p})),
     attending:SAMPLE.slice(0,18).map(p=>p.id),
-    settings:{sessionType:"training",emptyRows:"back",starters:"middle",trim:"neutral",drumSel:"",drumName:"",drumKg:"",sweepSel:"",sweepName:"",sweepKg:"",tol:5,sessionDate:isoToday(),session:todayLabel()},
+    settings:{sessionType:"training",emptyRows:"back",starters:"middle",trim:"neutral",drumSel:"",drumName:"",drumKg:"",sweepSel:"",sweepName:"",sweepKg:"",tol:5,sessionDate:nextSessionIso(),session:dateLabel(nextSessionIso())},
     plan:null,
     sample:true
   };
@@ -311,8 +324,8 @@ delete state.settings.drummer; delete state.settings.sweep;
 // Left/right tolerance: whole kg from 0 to 10 (0 is a real setting, not "use the default")
 function tolKg(){ const t=state.settings.tol; const n=(t===""||t==null||isNaN(+t))?5:Math.round(+t); return Math.min(10,Math.max(0,n)); }
 state.settings.tol=tolKg();
-// Older saves had a typed session name and no date: start them on today's date
-if(!/^\d{4}-\d{2}-\d{2}$/.test(state.settings.sessionDate||"")) state.settings.sessionDate=isoToday();
+// Missing date (older saves) or a date that has passed: move to the next training session
+if(!/^\d{4}-\d{2}-\d{2}$/.test(state.settings.sessionDate||"") || state.settings.sessionDate<isoToday()) state.settings.sessionDate=nextSessionIso();
 state.settings.session=dateLabel(state.settings.sessionDate);
 let ui={sel:null,pick:null,filter:""};
 
@@ -697,6 +710,14 @@ function renderLogic(){
       </ul>
     </div>
     <div class="panel">
+      <h2>Add to your home screen</h2>
+      <ul class="logic-list">
+        <li><b>iPhone:</b> open this page in Safari, tap Share, then <b>Add to Home Screen</b>.</li>
+        <li><b>Android:</b> open this page in Chrome, tap ⋮, then <b>Install app</b>.</li>
+      </ul>
+      <p class="muted">It then opens full screen from the ACCA Seat Planner icon and works offline. On iPhone, enter your roster in the installed app, as it keeps its own data separate from Safari.</p>
+    </div>
+    <div class="panel">
       <h2>Sources</h2>
       <p class="muted">In priority order.</p>
       ${tiers.map(([tier,list])=>`<h3>${tier}</h3>
@@ -857,7 +878,7 @@ function renderAttend(){
     <div class="panel">
       <h2>Session settings</h2>
       <div class="settings">
-        <div><label for="sess">Session date</label><input id="sess" type="date" value="${esc(s.sessionDate)}"></div>
+        <div><label for="sess">Session date</label><input id="sess" type="date" value="${esc(s.sessionDate)}"><small class="muted" style="display:block;margin-top:.25rem">Training: Tue and Thu 6:30–8:30pm, Sat 8:30–10:30am</small></div>
         <div><label for="stype">Session type</label><select id="stype">
           <option value="training" ${s.sessionType!=="race"?"selected":""}>Training: paddlers swap sides</option>
           <option value="race" ${s.sessionType==="race"?"selected":""}>Race: paddlers' preferred side</option></select></div>
@@ -1099,9 +1120,13 @@ function shareText(){
   lines.push("","Left side first, then right. Row 1 is the front.");
   return lines.join("\n");
 }
+// Weather: link out to BOM's official forecast. BOM's data feeds can't be used in the app (its API terms forbid it).
+const BOM_URL="https://www.bom.gov.au/places/nsw/glebe/forecast/";
+const BOM_HOURLY="https://www.bom.gov.au/places/nsw/glebe/forecast/detailed/";
+const weatherLink=()=>`<p class="wx"><a href="${BOM_URL}" target="_blank" rel="noopener">BOM forecast for Glebe</a> · <a href="${BOM_HOURLY}" target="_blank" rel="noopener">hour by hour</a> <span class="muted">(ACCA, Blackwattle Bay)</span></p>`;
 function renderShare(){
   if(!state.plan||state.plan.status!=="approved"){
-    main.innerHTML=`<div class="panel empty-state"><h2>Approve the plan first</h2><p>Sharing opens once a coach has approved the seat plan.</p><button class="btn primary" id="go">Go to seat plan</button></div>`;
+    main.innerHTML=`<div class="panel empty-state"><h2>Approve the plan first</h2><p>Sharing opens once a coach has approved the seat plan.</p>${weatherLink()}<button class="btn primary" id="go">Go to seat plan</button></div>`;
     document.getElementById("go").onclick=()=>setTab("plan"); return;
   }
   syncPlan();
@@ -1110,6 +1135,7 @@ function renderShare(){
     <div class="share-layout">
     <div class="panel">
       <h2>Share with the team</h2>
+      ${weatherLink()}
       <p class="muted">Names and seats only. Paste into the Stack Team App event chat, Messenger or WhatsApp.</p>
       <div class="share-text" id="st">${esc(txt)}</div>
       <div class="row-actions" style="margin-top:.75rem">
