@@ -78,7 +78,11 @@ main{padding:1rem}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn:focus-visible,input:focus-visible,select:focus-visible,nav button:focus-visible,.seat:focus-visible,.chip:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .row-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
-input[type=text],input[type=number],input[type=search],select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:.45rem .5rem;min-height:40px;width:100%}
+input[type=text],input[type=number],input[type=search],input[type=date],select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:.45rem .5rem;min-height:40px;width:100%}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0}
+:root{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark}}
 textarea{min-height:8rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem}
 label.inline{display:flex;align-items:center;gap:.4rem;cursor:pointer}
 input[type=checkbox]{width:20px;height:20px;accent-color:var(--lacquer)}
@@ -237,16 +241,23 @@ const SAMPLE = [
  ["Lucy V",71,2,"R",0,0],["Josh E",83,4,"E",0,1,1],["Ivy Q",62,1,"E",0,0],["Will C",98,3,"E",0,0,1]
 ].map((r,i)=>({id:"p"+(i+1),name:r[0],weight:r[1],level:r[2],side:r[3],stroke:!!r[4],rocket:!!r[5],engine:!!r[6]}));
 
-function todayLabel(){
-  const d=new Date();
-  return d.toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"})+" session";
+function isoToday(){
+  const d=new Date(), z=n=>String(n).padStart(2,"0");
+  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
 }
+// Session name is built from the chosen date, e.g. "Mon, 12 Oct session"
+function dateLabel(iso){
+  const [y,m,d]=String(iso||isoToday()).split("-").map(Number);
+  const dt=new Date(y,(m||1)-1,d||1);
+  return (isNaN(dt)?new Date():dt).toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"})+" session";
+}
+function todayLabel(){ return dateLabel(isoToday()); }
 function freshState(){
   return {
     tab:"roster",
     roster:SAMPLE.map(p=>({...p})),
     attending:SAMPLE.slice(0,18).map(p=>p.id),
-    settings:{sessionType:"training",starters:"middle",trim:"neutral",drummer:"",sweep:"",tol:5,session:todayLabel()},
+    settings:{sessionType:"training",starters:"middle",trim:"neutral",drummer:"",sweep:"",tol:5,sessionDate:isoToday(),session:todayLabel()},
     plan:null,
     sample:true
   };
@@ -257,6 +268,9 @@ if(!state||!Array.isArray(state.roster)) state=freshState();
 // An unedited sample roster saved before a sample field existed picks up the current sample values
 if(state.sample) state.roster.forEach(p=>{ const sp=SAMPLE.find(x=>x.id===p.id&&x.name===p.name); if(sp) p.engine=sp.engine; });
 state.settings=Object.assign({sessionType:"training",starters:"middle",trim:"neutral",drummer:"",sweep:"",tol:5,session:todayLabel()},state.settings||{});
+// Older saves had a typed session name and no date: start them on today's date
+if(!/^\d{4}-\d{2}-\d{2}$/.test(state.settings.sessionDate||"")) state.settings.sessionDate=isoToday();
+state.settings.session=dateLabel(state.settings.sessionDate);
 let ui={sel:null,pick:null,filter:""};
 
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
@@ -688,7 +702,7 @@ function renderAttend(){
     <div class="panel">
       <h2>Session settings</h2>
       <div class="settings">
-        <div><label for="sess">Session name</label><input id="sess" type="text" value="${esc(s.session)}"></div>
+        <div><label for="sess">Session date</label><input id="sess" type="date" value="${esc(s.sessionDate)}"></div>
         <div><label for="stype">Session type</label><select id="stype">
           <option value="training" ${s.sessionType!=="race"?"selected":""}>Training: paddlers swap sides</option>
           <option value="race" ${s.sessionType==="race"?"selected":""}>Race: paddlers' preferred side</option></select></div>
@@ -719,7 +733,8 @@ function renderAttend(){
   document.getElementById("allOn").onclick=()=>{ state.roster.forEach(p=>{ if(!state.attending.includes(p.id)) state.attending.push(p.id); }); save(); renderAttend(); };
   document.getElementById("allOff").onclick=()=>{ state.attending=[]; save(); renderAttend(); };
   const bind=(id,key,num)=>{ document.getElementById(id).addEventListener("change",e=>{ s[key]=num?(e.target.value===""?"":+e.target.value):e.target.value; save(); if(key==="session") render(); }); };
-  bind("sess","session"); bind("stype","sessionType"); bind("starters","starters"); bind("trim","trim"); bind("tol","tol",true); bind("drum","drummer",true); bind("sweep","sweep",true);
+  document.getElementById("sess").addEventListener("change",e=>{ s.sessionDate=e.target.value||isoToday(); s.session=dateLabel(s.sessionDate); save(); render(); });
+  bind("stype","sessionType"); bind("starters","starters"); bind("trim","trim"); bind("tol","tol",true); bind("drum","drummer",true); bind("sweep","sweep",true);
   document.getElementById("gen").onclick=()=>{
     const b=document.getElementById("gen"); b.disabled=true; b.textContent="Balancing the boat…";
     setTimeout(()=>{
