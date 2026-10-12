@@ -271,6 +271,31 @@ nav button .ic,nav button .lb-short{display:none}
   body{padding-left:calc(78px + env(safe-area-inset-left,0px));padding-bottom:0}
   .toast{bottom:calc(16px + env(safe-area-inset-bottom,0px));left:calc(50% + 39px)}
 }
+/* Roster on phones: cards + bottom sheet */
+.pcards{display:flex;flex-direction:column;gap:.45rem}
+.pcard{display:flex;align-items:center;gap:.6rem;width:100%;min-height:60px;padding:.55rem .75rem;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.pcard:active{background:var(--bg)}
+.pc-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:.15rem}
+.pc-name{font:700 1.05rem var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-meta{font-size:.85rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}
+.pc-chev{font-size:1.6rem;line-height:1;color:var(--muted)}
+.sheet-bg{position:fixed;top:0;right:0;bottom:0;left:0;z-index:55;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--surface);color:var(--ink);border-radius:14px 14px 0 0;border-top:3px solid var(--red);
+  padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom,0px))}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.5rem}
+.sheet-head h3{margin:0}
+.fld{display:block;font-size:.85rem;color:var(--muted);margin-bottom:.7rem}
+.fld input,.fld select{margin-top:.25rem;min-height:48px;font-size:16px}
+.fld-row{display:grid;grid-template-columns:1fr 1.4fr;gap:.6rem}
+.sheet-sub{font:500 .7rem var(--label);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:.6rem 0 .1rem;border-bottom:1px solid var(--line);padding-bottom:.25rem}
+.sw-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:52px;border-bottom:1px solid var(--line);cursor:pointer}
+.sw-row small{display:block;color:var(--muted);font-size:.8rem}
+input.switch{appearance:none;-webkit-appearance:none;width:50px;height:30px;min-width:50px;margin:0;border-radius:15px;background:var(--line);position:relative;flex:none;cursor:pointer;transition:background .15s}
+input.switch::before{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+input.switch:checked{background:var(--lacquer)}
+input.switch:checked::before{transform:translateX(20px)}
+.btn.danger{width:100%;margin-top:1rem;color:var(--warn);border-color:var(--warn);min-height:48px}
+@media (prefers-reduced-motion:reduce){input.switch,input.switch::before{transition:none}}
 @media (pointer:coarse){
   .btn,.btn.small{min-height:44px}
   .chip{min-height:44px;padding:.5rem .9rem}
@@ -770,8 +795,67 @@ function renderLogic(){
   document.getElementById("toSettings").onclick=()=>setTab("attend");
 }
 
+// Phones (same rule as the bottom bar / side rail) get a card list; tablets and computers keep the table
+const PHONE_MQ=matchMedia("(max-width:767px), (orientation:landscape) and (max-height:540px)");
+(PHONE_MQ.addEventListener?PHONE_MQ.addEventListener.bind(PHONE_MQ,"change"):PHONE_MQ.addListener.bind(PHONE_MQ))(()=>{ if(state.tab==="roster"&&!document.querySelector(".sheet-bg")) render(); });
+function newPaddler(){
+  const id="p"+Date.now().toString(36);
+  state.roster.push({id,name:"New paddler",weight:75,level:1,side:"E",stroke:false,engine:false,rocket:false,canSweep:false,canDrum:false});
+  state.sample=false; save(); return id;
+}
+async function removePaddler(id){
+  const p=state.roster.find(x=>x.id===id); if(!p) return false;
+  if(!(await ask(`Remove ${p.name} from the roster?`,"Remove"))) return false;
+  state.roster=state.roster.filter(x=>x.id!==id); state.attending=state.attending.filter(x=>x!==id);
+  if(state.plan) state.plan.seats=state.plan.seats.map(s=>s===id?null:s);
+  save(); return true;
+}
+const sideLabel={E:"Either side",L:"Left only",R:"Right only"};
+function cardMeta(p){
+  const tags=[p.stroke&&"Stroke",p.engine&&"Engine",p.rocket&&"Rocket",p.canSweep&&"Sweep",p.canDrum&&"Drum"].filter(Boolean);
+  return `<span class="lvl lvl${p.level}">XP${p.level}</span> ${esc(p.weight)} kg${p.side!=="E"?` · ${sideLabel[p.side]}`:""}${tags.length?` · ${tags.join(", ")}`:""}`;
+}
+function cardsHTML(){
+  const f=(ui.rfilter||"").toLowerCase();
+  const list=state.roster.filter(p=>!f||p.name.toLowerCase().includes(f)).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  return list.map(p=>`<button class="pcard" data-edit="${p.id}"><span class="pc-body"><span class="pc-name">${esc(p.name)}</span><span class="pc-meta">${cardMeta(p)}</span></span><span class="pc-chev" aria-hidden="true">›</span></button>`).join("")
+    || `<p class="muted">${state.roster.length?"No paddlers match.":"No paddlers yet. Add one below or import a CSV."}</p>`;
+}
+// Bottom sheet to edit one paddler: big fields, switches, Remove behind a confirm
+function openPaddlerSheet(id,isNew){
+  const p=state.roster.find(x=>x.id===id); if(!p) return;
+  const sw=(f,label,hint)=>`<label class="sw-row"><span><b>${label}</b>${hint?`<small>${hint}</small>`:""}</span><input type="checkbox" class="switch" data-f="${f}" ${p[f]?"checked":""}></label>`;
+  const bg=document.createElement("div"); bg.className="sheet-bg";
+  bg.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="Edit paddler">
+    <div class="sheet-head"><h3>${isNew?"New paddler":"Edit paddler"}</h3><button class="btn primary small" data-done>Done</button></div>
+    <label class="fld">Name<input type="text" data-f="name" value="${esc(p.name)}" autocomplete="off"></label>
+    <div class="fld-row">
+      <label class="fld">Weight (kg)<input type="number" data-f="weight" value="${esc(p.weight)}" min="30" max="160" step="0.5" inputmode="decimal"></label>
+      <label class="fld">XP level<select data-f="level">${[1,2,3,4,5].map(l=>`<option value="${l}" ${+p.level===l?"selected":""}>${l} · ${LEVEL_NAMES[l]}</option>`).join("")}</select></label>
+    </div>
+    <label class="fld">Preferred side (race days)<select data-f="side">${[["E","Either"],["L","Left only"],["R","Right only"]].map(([v,t])=>`<option value="${v}" ${p.side===v?"selected":""}>${t}</option>`).join("")}</select></label>
+    <p class="sheet-sub">Section</p>
+    ${sw("stroke","Stroke","Row 1")}${sw("engine","Engine","Rows 4–7")}${sw("rocket","Rocket","Rows 8–10")}
+    <p class="sheet-sub">Role</p>
+    ${sw("canSweep","Can sweep","")}${sw("canDrum","Can drum","")}
+    <button class="btn danger" data-remove>Remove paddler</button>
+  </div>`;
+  const key=e=>{ if(e.key==="Escape") close(); };
+  const close=()=>{ bg.remove(); document.removeEventListener("keydown",key); render(); };
+  bg.addEventListener("change",e=>{ const f=e.target.dataset.f; if(!f) return;
+    p[f]= e.target.type==="checkbox" ? e.target.checked : (f==="weight"||f==="level") ? +e.target.value : e.target.value;
+    state.sample=false; save(); });
+  bg.addEventListener("click",async e=>{
+    if(e.target===bg||e.target.closest("[data-done]")) close();
+    else if(e.target.closest("[data-remove]")){ if(await removePaddler(id)) close(); }
+  });
+  document.addEventListener("keydown",key);
+  document.body.appendChild(bg);
+  if(isNew){ const n=bg.querySelector('[data-f="name"]'); n.focus(); n.select(); }
+}
 function renderRoster(){
-  const rows=state.roster.map(p=>`
+  const phone=PHONE_MQ.matches;
+  const rows=phone?"":state.roster.map(p=>`
     <tr data-id="${p.id}">
       <td><input class="name" type="text" data-f="name" value="${esc(p.name)}" aria-label="Name"></td>
       <td><input type="number" data-f="weight" value="${esc(p.weight)}" min="30" max="160" step="0.5" aria-label="Weight in kg"></td>
@@ -795,12 +879,13 @@ function renderRoster(){
         <li>Rocket (rows 8–10)</li>
       </ul>
       <p class="muted">Role: Sweep and Drum mark who can steer or drum. Only they appear in the Sweep and Drummer lists on Who's paddling.</p>
-      <p class="muted">Tick any that apply. Paddlers' preferred side only applies on race days; at training, paddlers swap sides. Paddler weights and XP levels never appear in the shared plan.</p>
-      <div class="roster-wrap"><table class="roster">
+      <p class="muted">${phone?"Tap a paddler to edit or remove them.":"Tick any that apply."} Paddlers' preferred side only applies on race days; at training, paddlers swap sides. Paddler weights and XP levels never appear in the shared plan.</p>
+      ${phone?`<input type="search" id="rsearch" placeholder="Search paddlers" value="${esc(ui.rfilter||"")}" aria-label="Search paddlers" style="margin:.4rem 0 .6rem">
+      <div class="pcards" id="pcards">${cardsHTML()}</div>`:`<div class="roster-wrap"><table class="roster">
         <colgroup><col class="c-name"><col class="c-w"><col class="c-lv"><col class="c-side"><col class="c-chk"><col class="c-chk"><col class="c-chk"><col class="c-chk"><col class="c-chk"><col class="c-rm"></colgroup>
         <thead><tr><th rowspan="2">Name</th><th rowspan="2"><span class="hfull">Weight (kg)</span><span class="habbr">Kg</span></th><th rowspan="2"><span class="hfull">XP Level</span><span class="habbr">XP</span></th><th rowspan="2">Side</th><th colspan="3" class="grp">Section</th><th colspan="2" class="grp">Role</th><th rowspan="2"><span class="sr">Remove</span></th></tr><tr><th class="c"><span class="hfull">Stroke</span><span class="habbr">Str</span></th><th class="c"><span class="hfull">Engine</span><span class="habbr">Eng</span></th><th class="c"><span class="hfull">Rocket</span><span class="habbr">Rkt</span></th><th class="c"><span class="hfull">Sweep</span><span class="habbr">Swp</span></th><th class="c"><span class="hfull">Drum</span><span class="habbr">Drm</span></th></tr></thead>
         <tbody>${rows||`<tr><td colspan="10" class="empty-state">No paddlers yet. Add one below or import a CSV.</td></tr>`}</tbody>
-      </table></div>
+      </table></div>`}
       <div class="row-actions" style="margin-top:.75rem">
         <button class="btn primary" id="addP">Add paddler</button>
         <span class="muted">${state.roster.length} paddlers</span>
@@ -824,20 +909,19 @@ function renderRoster(){
       state.sample=false; save();
     });
   });
-  main.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async()=>{
-    const id=b.dataset.del; const p=state.roster.find(x=>x.id===id);
-    if(!(await ask(`Remove ${p.name} from the roster?`,"Remove"))) return;
-    state.roster=state.roster.filter(x=>x.id!==id); state.attending=state.attending.filter(x=>x!==id);
-    if(state.plan) state.plan.seats=state.plan.seats.map(s=>s===id?null:s);
-    save(); render();
-  }));
+  main.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",async()=>{ if(await removePaddler(b.dataset.del)) render(); }));
+  const pc=document.getElementById("pcards");
+  if(pc){
+    pc.addEventListener("click",e=>{ const b=e.target.closest("[data-edit]"); if(b) openPaddlerSheet(b.dataset.edit,false); });
+    document.getElementById("rsearch").addEventListener("input",e=>{ ui.rfilter=e.target.value; pc.innerHTML=cardsHTML(); });
+  }
   document.getElementById("lvlHelp").onclick=e=>{ e.preventDefault(); setTab("logic"); document.getElementById("levels").scrollIntoView(); };
   const cs=document.getElementById("clearSample");
   if(cs) cs.onclick=async()=>{ if(!(await ask("Clear the sample roster? This removes all 24 sample paddlers.","Clear roster"))) return; state.roster=[]; state.attending=[]; state.plan=null; state.sample=false; save(); render(); };
   document.getElementById("addP").onclick=()=>{
-    const id="p"+Date.now().toString(36);
-    state.roster.push({id,name:"New paddler",weight:75,level:1,side:"E",stroke:false,engine:false,rocket:false,canSweep:false,canDrum:false});
-    state.sample=false; save(); render();
+    const id=newPaddler();
+    if(phone){ ui.rfilter=""; render(); openPaddlerSheet(id,true); return; }
+    render();
     const inp=main.querySelector(`tr[data-id="${id}"] input.name`); if(inp){ inp.focus(); inp.select(); }
   };
   document.getElementById("csvFile").onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>importCsv(r.result); r.readAsText(f); };

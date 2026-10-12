@@ -1,6 +1,6 @@
 // Offline support. Bump VERSION whenever index.html or any shell file changes,
 // so phones pick up the new copy.
-const VERSION = "v56";
+const VERSION = "v57";
 const SHELL = "shell-" + VERSION;
 const FONTS = "fonts";
 const SHELL_FILES = [
