@@ -509,7 +509,7 @@ function evaluate(seats,c,acc){
   add("trim",Math.pow((com-c.target)*10,2)*1.5);
   return {cost:k,L,R,com};
 }
-function optimise(prev,locks){
+function optimise(prev,locks,out){
   const c=ctx();
   const att=paddlerIds();
   const seats=new Array(SEATS).fill(null);
@@ -521,7 +521,7 @@ function optimise(prev,locks){
     }
   }
   const freeIdx=[]; for(let i=0;i<SEATS;i++) if(!lk[i]) freeIdx.push(i);
-  const pool=att.filter(id=>!placed.has(id));
+  const pool=att.filter(id=>!placed.has(id)&&!(out||[]).includes(id)); // paddlers the coach took out stay out
   let best=null,bestCost=Infinity, scored=0, runCosts=[]; // scored = seating configurations checked; runCosts = each run's best score
   for(let rs=0;rs<8;rs++){ // 8 runs: tested 12-Oct-26, more consistent than 4 and still under a second on phones
     const s=seats.slice();
@@ -1185,7 +1185,7 @@ function renderPlan(){
           </div>
           <p class="muted" style="margin:.25rem 0 .5rem">${c.race?"Race: paddlers' preferred side.":"Training: paddlers swap sides through the session, so preferred sides are ignored."}</p>
           ${warns.length?`<ul class="warnings">${warns.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`:`<div class="allgood">No rule warnings. Balance and seat roles are within the settings.</div>`}
-          ${unseated.length?`<h3>Not seated (${unseated.length})</h3><p class="muted" style="margin-top:0">Tap a name, then tap a seat.</p><div class="chips">${unseated.map(id=>`<button class="chip ${ui.pick===id?"sel":""}" data-pick="${id}" ${approved?"disabled":""}>${esc(c.m[id].name)}</button>`).join("")}</div>`:""}
+          ${unseated.length?`<h3>Not seated (${unseated.length})</h3><p class="muted" style="margin-top:0">Tap a name, then tap a seat. Re-balance leaves them out until you do.</p><div class="chips">${unseated.map(id=>`<button class="chip ${ui.pick===id?"sel":""}" data-pick="${id}" ${approved?"disabled":""}>${esc(c.m[id].name)}</button>`).join("")}</div>`:""}
           <div class="row-actions" style="margin-top:1rem">
             ${approved?`<button class="btn primary" id="toShare">Share with the team</button><button class="btn" id="unapprove">Edit again</button>`:
             `<button class="btn primary" id="approve">Approve plan</button><span class="regen-wrap"><button class="btn" id="regen">Re-balance (keeps locked seats)</button>${state.plan.scored?runsNote():""}</span>${state.plan.locks.some(Boolean)?`<button class="btn" id="unlockAll">Unlock all seats (${state.plan.locks.filter(Boolean).length})</button>`:""}<button class="btn" id="toAttend">Change who's paddling</button>`}
@@ -1223,7 +1223,7 @@ function renderPlan(){
   main.querySelectorAll("[data-pick]").forEach(b=>b.addEventListener("click",()=>{ ui.sel=null; ui.pick= ui.pick===b.dataset.pick?null:b.dataset.pick; renderPlan(); }));
   const q=id=>document.getElementById(id);
   if(q("lockBtn")) q("lockBtn").onclick=()=>{ state.plan.locks[ui.sel]=!state.plan.locks[ui.sel]; save(); renderPlan(); };
-  if(q("benchBtn")) q("benchBtn").onclick=()=>{ state.plan.seats[ui.sel]=null; ui.sel=null; save(); renderPlan(); };
+  if(q("benchBtn")) q("benchBtn").onclick=()=>{ const id=state.plan.seats[ui.sel]; state.plan.out=[...new Set([...(state.plan.out||[]),id])]; state.plan.seats[ui.sel]=null; ui.sel=null; save(); renderPlan(); };
   if(q("cancelSel")) q("cancelSel").onclick=()=>{ ui.sel=null; renderPlan(); };
   if(q("cancelPick")) q("cancelPick").onclick=()=>{ ui.pick=null; renderPlan(); };
   if(q("approve")) q("approve").onclick=async()=>{
@@ -1234,7 +1234,7 @@ function renderPlan(){
   if(q("unlockAll")) q("unlockAll").onclick=()=>{ state.plan.locks=state.plan.locks.map(()=>false); save(); renderPlan(); toast("All seats unlocked"); };
   if(q("regen")) q("regen").onclick=()=>{
     const b=q("regen"); b.disabled=true; b.textContent="Balancing the boat…";
-    setTimeout(()=>{ const r=optimise(state.plan.seats,state.plan.locks); state.plan.seats=r.seats; state.plan.locks=r.locks; state.plan.scored=r.scored; state.plan.runCosts=r.runCosts; state.plan.best=r.best; ui.sel=null; save(); renderPlan(); toast("Re-balanced"); },30);
+    setTimeout(()=>{ const r=optimise(state.plan.seats,state.plan.locks,state.plan.out); state.plan.seats=r.seats; state.plan.locks=r.locks; state.plan.scored=r.scored; state.plan.runCosts=r.runCosts; state.plan.best=r.best; ui.sel=null; save(); renderPlan(); toast("Re-balanced"); },30);
   };
   if(q("toAttend")) q("toAttend").onclick=()=>setTab("attend");
   if(q("toShare")) q("toShare").onclick=()=>setTab("share");
@@ -1244,6 +1244,7 @@ function seatTap(i){
   if(ui.pick){
     const prev=p.seats[i];
     if(p.locks[i]){ toast("That seat is locked. Unlock it first."); return; }
+    p.out=(p.out||[]).filter(x=>x!==ui.pick); if(prev) p.out.push(prev); // placed paddler is back in; the one replaced is out
     p.seats[i]=ui.pick; ui.pick=null; save(); renderPlan();
     if(prev) toast("Moved the previous paddler to not seated");
     return;
