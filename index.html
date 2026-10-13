@@ -230,6 +230,7 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--lacquer)}
 .lvl-crit h3 small{font:500 .68rem var(--label);letter-spacing:.06em;color:var(--muted)}
 .lvl-crit .logic-list{margin-bottom:.35rem}
 .lvl-crit p{margin:0;font-size:.9rem}
+a.setting{color:inherit;text-decoration:none;cursor:pointer}
 .setting{display:inline-block;background:#FDE8E9;background:color-mix(in srgb,var(--red) 10%,var(--surface));border:1px solid #F5B5B8;border:1px solid color-mix(in srgb,var(--red) 35%,var(--surface));border-radius:3px;padding:0 .35rem;font-weight:700}
 .notes{list-style:none;margin:0;padding:0}
 .notes li{padding:.55rem 0;border-bottom:1px solid var(--line)}
@@ -319,7 +320,7 @@ input.switch:checked::before{transform:translateX(20px)}
   .chip{min-height:44px;padding:.5rem .9rem}
   input[type=text],input[type=number],input[type=search],input[type=date],select{min-height:44px}
   .why summary{display:flex;align-items:center;min-height:44px}
-  .wx a,#lvlHelp,#toSettings{display:inline-flex;align-items:center;min-height:44px}
+  .wx a,#lvlHelp{display:inline-flex;align-items:center;min-height:44px}
   .hit{display:flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;cursor:pointer}
   .hit input[type=checkbox]{width:24px;height:24px}
 }
@@ -351,7 +352,7 @@ const KEY = "dbseat.v1";
 const ROWS = 10, SEATS = 20;
 // Experience levels; criteria are on the How it works tab (see renderLogic)
 const LEVEL_NAMES = {1:"New starter",2:"Developing",3:"Competent",4:"Experienced",5:"Lead paddler"};
-const lvName = l => `Level ${l} (${LEVEL_NAMES[l]||""})`;
+const lvName = l => `XP${l} (${LEVEL_NAMES[l]||""})`;
 const LOCK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1zm2 0h6V7a3 3 0 0 0-6 0v3z"/></svg>';
 
 
@@ -632,6 +633,8 @@ function renderLogic(){
     flyers:"https://www.dragonflyers.net.au/training/levels-of-training"
   };
   const link=([t,u])=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`;
+  // Setting values in the Guide link to that control under Session settings
+  const set=(field,txt)=>`<a href="#settings" class="setting" data-setting="${field}">${txt}</a>`;
   const roles=[
     ["Row 1","Strokes: flagged Stroke, XP Level 5 preferred, XP Level 4 accepted","Set the pace for the whole boat and hold it under pressure from behind. The drummer drums in time with the strokes."],
     ["Row 2","Pacers: XP Level 4–5","Sit directly behind the strokes, protect them, and are first to pass the timing or a rate change back to the boat."],
@@ -639,7 +642,7 @@ function renderLogic(){
     ["Rows 4–7","Engine room: flagged Engine, heavier and strong, with at least one XP Level 4–5 to lead calls","The middle eight: heavier pairs give power and keep the boat balanced."],
     ["Rows 8–10","Flagged Rocket, and skilled paddlers","Sprinters with an enormous task, so they need to be skilled and fit."],
     ["Row partners","Paddlers of similar weight side by side","Keeps each row, and the boat, balanced."],
-    ["Empty seats","Paddlers fill rows in pairs, leaving whole empty rows. Coach setting: at the back, or spread for balance (rows 1–2 always full)","Every paddler has a partner to balance against. At the back keeps the boat tidy but a short crew runs front heavy. Spreading the empty rows keeps the boat level; the planner often leaves row 3 empty, behind the strokes and row 2. Current setting: "+(s.emptyRows==="spread"?"spread for balance":"at the back")+"."]
+    ["Empty seats","Paddlers fill rows in pairs, leaving whole empty rows. Coach setting: at the back, or spread for balance (rows 1–2 always full)","Every paddler has a partner to balance against. At the back keeps the boat tidy but a short crew runs front heavy. Spreading the empty rows keeps the boat level; the planner often leaves row 3 empty, behind the strokes and row 2. Current setting: "+set("emptyRows",s.emptyRows==="spread"?"spread for balance":"at the back")+"."]
   ];
   const levels=[
     {n:1,name:"New starter",stage:"AusDBF Foundation 1: learning basic movement",crit:[
@@ -711,7 +714,7 @@ function renderLogic(){
     {id:"method",title:"Seating method and scoring",teaser:"How the planner tests and scores each plan.",body:`
       <ul class="logic-list">
         <li>Each plan tests thousands of seating configurations, eight times over.</li>
-        <li>Every broken rule adds points. The plan with the fewest points wins.</li>
+        <li>Every broken <a href="#rules" data-jump="rules">seating rule</a> adds points. The plan with the fewest points wins.</li>
         <li>Locked seats never move.</li>
       </ul>
       <h3>The method</h3>
@@ -739,9 +742,9 @@ function renderLogic(){
       <p class="muted">Australian sources only, AusDBF and Dragon Boat NSW first. ACCA coaches have the final say.</p>`},
     {id:"rules",title:"Seating rules",teaser:"The fixed rules every plan follows.",body:`
       <ul class="logic-list">
-        <li>Race days: left-only and right-only paddlers sit on their side. Training: sides are ignored. Now: <span class="setting">${s.sessionType==="race"?"race":"training"}</span>.</li>
+        <li>Race days: left-only and right-only paddlers sit on their side. Training: sides are ignored. Now: ${set("stype",s.sessionType==="race"?"race":"training")}.</li>
         <li>Rows 1 and 2 are always filled.</li>
-        <li>Paddlers sit in pairs, so empty seats form whole empty rows. Where they go: <span class="setting">${s.emptyRows==="spread"?"spread for balance":"at the back"}</span>.</li>
+        <li>Paddlers sit in pairs, so empty seats form whole empty rows. Where they go: ${set("emptyRows",s.emptyRows==="spread"?"spread for balance":"at the back")}.</li>
         <li>With an odd number of paddlers, one row has a single paddler.</li>
         <li>One boat: 10 rows, 20 seats. The drummer and sweep don't take paddling seats.</li>
         <li>Only paddlers ticked Drum or Sweep can drum or sweep, unless a name is typed under Other.</li>
@@ -764,13 +767,12 @@ function renderLogic(){
       </div>`).join("")}`},
     {id:"balance",title:"Boat balance",teaser:"Weight targets side to side and front to back.",body:`
       <ul class="logic-list">
-        <li>Left and right within <span class="setting">${tolKg()} kg</span> of each other. The further out, the more points.</li>
-        <li>Centre of weight aims for the middle of the boat (row 5.5). Setting: <span class="setting">${trimTxt}</span>.</li>
+        <li>Left and right within ${set("tol",tolKg()+" kg")} of each other. The further out, the more points.</li>
+        <li>Centre of weight aims for the middle of the boat (row 5.5). Setting: ${set("trim",trimTxt)}.</li>
         <li>Drummer and sweep weights count when they're chosen.</li>
         <li>Row partners should be similar weights. Gaps over 10 kg add many more points and a warning.</li>
-        <li>Short crews: empty rows at the back make the boat front heavy. Spread for balance keeps it level. Now: <span class="setting">${s.emptyRows==="spread"?"spread for balance":"at the back"}</span>.</li>
-      </ul>
-      <div class="row-actions"><button class="btn small" id="toSettings">Change settings</button></div>`},
+        <li>Short crews: empty rows at the back make the boat front heavy. Spread for balance keeps it level. Now: ${set("emptyRows",s.emptyRows==="spread"?"spread for balance":"at the back")}.</li>
+      </ul>`},
     {id:"read",title:"Reading the seat plan",teaser:"Card colours, badges, outlines and the points line.",body:`
       <ul class="logic-list">
         <li>Card colour shows weight, in five bands: pale for the lightest paddlers in the boat, dark red for the heaviest. The key sits under the sweep.</li>
@@ -782,7 +784,7 @@ function renderLogic(){
         <li>Weights and placement notes stay on this device. The shared plan shows names and seats only.</li>
       </ul>`},
     {id:"starters",title:"New starters (XP1–XP2)",teaser:"Where XP1 and XP2 paddlers are placed.",body:`
-      <p>Setting: <span class="setting">${startTxt}</span>.</p>
+      <p>Setting: ${set("starters",startTxt)}.</p>
       <ul class="logic-list">
         <li><b>Middle:</b> beside experienced paddlers, in sight of the strokes. Kept out of rows 8–10, and mostly off rows 3 and 7.</li>
         <li><b>Back:</b> out of the timing line while they learn. Kept off rows 3–7.</li>
@@ -807,8 +809,10 @@ function renderLogic(){
     ? secs.map(x=>`<details class="panel gsec" id="${x.id}"><summary><span><h2>${x.title}</h2><small>${x.teaser}</small></span></summary>${x.body}</details>`).join("")
     : `<div class="panel gtoc"><h2>On this page</h2><ul>${secs.map(x=>`<li><a href="#${x.id}" data-jump="${x.id}">${x.title}</a></li>`).join("")}</ul></div>`
       + secs.map(x=>`<div class="panel" id="${x.id}"><h2>${x.title}</h2>${x.body}</div>`).join("");
-  main.querySelectorAll("[data-jump]").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); document.getElementById(a.dataset.jump).scrollIntoView(); }));
-  document.getElementById("toSettings").onclick=()=>setTab("attend");
+  main.querySelectorAll("[data-jump]").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); const d=document.getElementById(a.dataset.jump); if(d.tagName==="DETAILS") d.open=true; d.scrollIntoView(); }));
+  main.querySelectorAll("[data-setting]").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault();
+    setTab("attend"); const f=document.getElementById(a.dataset.setting);
+    document.getElementById("settings").scrollIntoView(); if(f) f.focus({preventScroll:true}); }));
 }
 
 // Phones (same rule as the bottom bar / side rail) get a card list; tablets and computers keep the table
@@ -1020,7 +1024,7 @@ function renderAttend(){
           <span><span class="cond" style="font-weight:700;font-size:1.05rem">${esc(p.name)}</span><br><span class="meta">XP${p.level} (${LEVEL_NAMES[p.level]||""})${p.side!=="E"?`, ${p.side==="L"?"left":"right"} only`:""}${p.stroke?", stroke":""}${p.engine?", engine":""}${p.rocket?", rocket":""}${roleNote(p.id)}</span></span>
         </label>`).join("")||`<p class="muted">No paddlers match.</p>`}</div>
     </div>
-    <div class="panel">
+    <div class="panel" id="settings">
       <h2>Session settings</h2>
       <div class="settings">
         <div><label for="sess">Session date</label><input id="sess" type="date" value="${esc(s.sessionDate)}"><small class="muted" style="display:block;margin-top:.25rem">Training: Tue and Thu 6:30–8:30pm, Sat 8:30–10:30am</small></div>
