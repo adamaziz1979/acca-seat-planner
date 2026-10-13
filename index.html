@@ -279,6 +279,7 @@ nav button .ic,nav button .lb-short{display:none}
 /* Guide: jump links on wide screens, collapsed sections on phones */
 .gtoc ul{margin:.3rem 0 0;padding:0;list-style:none;columns:2 14rem;column-gap:1.5rem}
 .gtoc li{margin:.2rem 0}
+.totop{text-align:right;max-width:none;margin:.75rem 0 0;font-size:.85rem}
 .panel[id]{scroll-margin-top:1rem}
 .gsec{padding:0}
 .gsec>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:.8rem;min-height:48px;padding:.75rem 1rem;cursor:pointer}
@@ -808,7 +809,8 @@ function renderLogic(){
   main.innerHTML=phone
     ? secs.map(x=>`<details class="panel gsec" id="${x.id}"><summary><span><h2>${x.title}</h2><small>${x.teaser}</small></span></summary>${x.body}</details>`).join("")
     : `<div class="panel gtoc"><h2>On this page</h2><ul>${secs.map(x=>`<li><a href="#${x.id}" data-jump="${x.id}">${x.title}</a></li>`).join("")}</ul></div>`
-      + secs.map(x=>`<div class="panel" id="${x.id}"><h2>${x.title}</h2>${x.body}</div>`).join("");
+      + secs.map(x=>`<div class="panel" id="${x.id}"><h2>${x.title}</h2>${x.body}<p class="totop"><a href="#top" data-top>Back to top ↑</a></p></div>`).join("");
+  main.querySelectorAll("[data-top]").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); window.scrollTo(0,0); }));
   main.querySelectorAll("[data-jump]").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); const d=document.getElementById(a.dataset.jump); if(d.tagName==="DETAILS") d.open=true; d.scrollIntoView(); }));
   main.querySelectorAll("[data-setting]").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault();
     setTab("attend"); const f=document.getElementById(a.dataset.setting);
