@@ -921,7 +921,7 @@ function renderRoster(){
       <h2>Import or export</h2>
       <p class="muted">CSV columns: name, weight, level, side (L, R or E), stroke (Y/N), rocket (Y/N), engine (Y/N), sweep (Y/N), drum (Y/N). Importing replaces the roster. Use export to pass the roster to another coach.</p>
       <div class="row-actions" style="margin-bottom:.6rem">
-        <label class="btn" for="csvFile">Choose CSV file</label><input id="csvFile" type="file" accept=".csv,text/csv" class="sr">
+        <label class="btn" for="csvFile">Choose CSV file</label><a class="btn" id="csvTemplate" href="${TEMPLATE_HREF}" download="ACCA roster template.csv">Download CSV template</a><input id="csvFile" type="file" accept=".csv,text/csv" class="sr">
         <button class="btn" id="exportCsv">Copy roster as CSV</button>
       </div>
       <textarea id="csvText" aria-label="Paste CSV" placeholder="name,weight,level,side,stroke,rocket,engine,sweep,drum&#10;Sarah K,64,5,E,Y,N,N,N,N"></textarea>
@@ -970,6 +970,9 @@ function parseCsv(text){
   if(cell!==""||row.length){ row.push(cell); out.push(row); }
   return out.filter(r=>r.some(c=>c.trim()!==""));
 }
+// Roster CSV template (dummy paddlers), offered as a download on the Roster tab
+const TEMPLATE_CSV=["name,weight,level,side,stroke,rocket,engine,sweep,drum","Alex T,62,5,E,Y,N,N,N,N","Jordan M,68,4,L,Y,N,N,N,N","Casey R,75,4,R,N,N,Y,N,N","Morgan L,88,3,E,N,N,Y,N,N","Riley P,92,4,L,N,N,Y,Y,N","Sam K,71,3,R,N,Y,N,N,N","Taylor B,79,2,E,N,Y,N,N,N","Jamie W,58,1,E,N,N,N,N,Y","Drew H,84,3,R,N,N,Y,N,N","Quinn S,66,2,L,N,N,N,N,N"].join("\r\n")+"\r\n";
+const TEMPLATE_HREF="data:text/csv;charset=utf-8,"+encodeURIComponent(TEMPLATE_CSV);
 async function importCsv(text){
   const rows=parseCsv(text||""); if(!rows.length){ toast("No rows found in that CSV"); return; }
   let start=0; const h=rows[0].map(x=>x.trim().toLowerCase());
