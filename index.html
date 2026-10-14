@@ -86,6 +86,8 @@ main{padding:1rem}
 .runs summary::-webkit-details-marker{display:none}
 .runs[open] span{display:block;margin-top:.2rem;max-width:22rem}
 .lvl-sum{margin:.1rem 0 .3rem}
+.lvl-also{font-size:.78rem;color:var(--muted);margin:.4rem 0 0}
+.lvl-crit details a{color:inherit;font-weight:400;text-decoration:underline;text-decoration-thickness:1px;text-decoration-color:currentColor;text-underline-offset:2px}
 /* keeps the count with its button: beside it, or just under it on narrow screens */
 .regen-wrap{display:inline-flex;flex-wrap:wrap;align-items:center;column-gap:.5rem;row-gap:.2rem}
 .why{margin-top:.6rem;font-size:.85rem}
@@ -617,23 +619,21 @@ function renderLogic(){
   const s=state.settings;
   const trimTxt={neutral:"level",bow:"slightly front heavy",stern:"slightly back heavy"}[s.trim]||"level";
   const startTxt=s.starters==="back"?"back, out of the timing line":"middle, beside experienced paddlers";
-  // Australian sources only (user instruction 13-Oct-26): AusDBF and Dragon Boat NSW first, then other Australian state bodies, then Australian clubs.
-  // A rule no Australian source covers is labelled a planner rule.
+  // Sources (user instruction 14-Oct-26): ACCA, Dragon Boat NSW and AusDBF only, cited in that order.
+  // A rule none of them covers is labelled a planner rule. The ACCA handbook link is a Google Drive viewer, which can't jump to a page, so the page number is in the link text.
   const SRC={
+    accaTry:"https://accadbr.com/come-and-try/",
+    accaCoaches:"https://accadbr.com/who-is-acca/#coaches",
+    handbook:"https://drive.google.com/file/d/1bPT9KVBob3bkKjh7N69wZOOr6oRWc2qH/view",
+    dbnsw:"https://www.dbnsw.org.au/performance/athlete-pathway-framework",
+    ltp:"https://cdn.revolutionise.com.au/cups/dbnsw/files/gyftq59sbilkfwbf.pdf",
     pathway:"https://www.ausdbf.com.au/file/ja8v4sesiheniblo",
     safety:"https://cdn.revolutionise.com.au/cups/ausdbf/files/pmhjorevzj67xmjz.pdf",
     ancas:"https://cdn.revolutionise.com.au/site/yvea7jvlvoreic4v.pdf",
-    t9:"https://www.ausdbf.com.au/file/dxuiynkshimto8a8",
-    coaching:"https://www.ausdbf.com.au/ausdbf-courses/coaching-courses",
-    dbnsw:"https://www.dbnsw.org.au/performance/athlete-pathway-framework",
-    ltp:"https://cdn.revolutionise.com.au/cups/dbnsw/files/gyftq59sbilkfwbf.pdf",
-    psdbc:"https://www.revolutionise.com.au/gpsdbc/about/roles-in-a-dragon-boat",
-    ccdbc:"https://www.ccdragons.org.au/how-a-crew-works-2/",
-    dbv:"https://www.dragonboatvictoria.com.au/about/how-to-dragon-boat",
-    dbsa:"https://www.dragonboatsa.com/media/1097/dsa_new_team_manual.pdf",
-    flyers:"https://www.dragonflyers.net.au/training/levels-of-training"
+    t9:"https://www.ausdbf.com.au/file/dxuiynkshimto8a8"
   };
-  const link=([t,u])=>`<a href="${u}" target="_blank" rel="noopener">${t}</a>`;
+  const HB="ACCA 2025-26 Selection Criteria Handbook";
+  const link=([t,u])=>u?`<a href="${u}" target="_blank" rel="noopener">${t}</a>`:t;
   // Setting values in the Guide link to that control under Session settings
   const set=(field,txt)=>`<a href="#settings" class="setting" data-setting="${field}">${txt}</a>`;
   const roles=[
@@ -652,63 +652,62 @@ function renderLogic(){
       "Holds the paddle correctly and shows an understanding of timing.",
       "Understands boat commands, such as slowing and stopping, and can do basic paddling drills."],
       sum:"Learning the basics: safety, getting in and out, timing and commands.",seats:"Middle or back, per the new-starter setting. Never rows 1–2, and kept out of row 3.",
-      src:[["AusDBF Athlete Pathway, Foundation 1",SRC.pathway],["Dragon Boat NSW athlete pathway",SRC.dbnsw],["Dragon Boat Victoria, Foundation Phase 1",SRC.dbv]]},
+      src:[["AusDBF Athlete Pathway, Foundation 1, p24",SRC.pathway+"#page=24"]]},
     {n:2,name:"Developing",stage:"AusDBF Foundation 2: extension and refinement",crit:[
       "Correct technique on their preferred side, and improving on the other side.",
       "Holds correct technique for longer before tiring.",
       "Timing is improving, both in the water and on the recovery.",
       "Growing understanding of how the boat moves, and trains regularly."],
       sum:"Sound on their preferred side, timing improving, training regularly.",seats:"Same as XP1, beside experienced paddlers where possible.",
-      src:[["AusDBF Athlete Pathway, Foundation 2",SRC.pathway],["Dragon Boat NSW athlete pathway",SRC.dbnsw]]},
+      src:[["AusDBF Athlete Pathway, Foundation 2, p24",SRC.pathway+"#page=24"]]},
     {n:3,name:"Competent",stage:"AusDBF Foundation 3: commitment to dragon boat",crit:[
       "Paddles at a competitive pace, and is race fit.",
       "Completes race starts.",
       "Fewer errors, with better technique through most or all phases of the stroke.",
       "Sound technique on both sides, and races at local regattas at a sustained pace."],
       sum:"Race fit, completes race starts, sound on both sides.",seats:"Row 3 or further back. Not rows 1–2.",
-      src:[["AusDBF Athlete Pathway, Foundation 3",SRC.pathway],["Dragon Boat NSW athlete pathway",SRC.dbnsw],["AusDBF race-fit requirement (reported by Dragon Flyers club)",SRC.flyers]]},
+      src:[["AusDBF Athlete Pathway, Foundation 3, p24",SRC.pathway+"#page=24"]]},
     {n:4,name:"Experienced",stage:"AusDBF Talent 1: demonstration of potential",crit:[
       "Meets club benchmark standards, and paddles at the right intensity when asked, such as starts.",
       "Paddles correctly with little conscious thought, with few errors.",
       "Knows their dominant side, and gets strong results at local regattas or represents the club at nationals.",
       "Receptive to coaching, keen to improve, and shows self-regulation in training and at regattas."],
       sum:"Consistent technique with few errors, and strong local results.",seats:"Rows 2–3, the back, or leading the engine room. Row 1 if ticked Stroke.",
-      src:[["AusDBF Athlete Pathway, Talent 1",SRC.pathway],["Dragon Boat NSW athlete pathway",SRC.dbnsw]]},
+      src:[["AusDBF Athlete Pathway, Talent 1, p25",SRC.pathway+"#page=25"],[HB+", time trials and performance targets, p7",SRC.handbook]]},
     {n:5,name:"Lead paddler",stage:"AusDBF Talent 2 and above: talent verification",crit:[
       "Paddles with automatic, correct technique, and adjusts to a different paddling style when asked.",
       "Reads the boat's movement and adapts their technique.",
       "Meets state squad standards, or has state, national or Club Crew World Championship experience.",
       "As a stroke, sets and holds the rate and isn't pushed faster by pressure from behind."],
       sum:"Automatic technique, reads the boat, and holds the rate under pressure.",seats:"First choice for row 1 if ticked Stroke. Otherwise row 2, the engine room or the back.",
-      src:[["AusDBF Athlete Pathway, Talent 2",SRC.pathway],["Dragon Boat NSW athlete pathway",SRC.dbnsw],["Port Stephens Dragon Boat Club (strokes set the pace)",SRC.psdbc]]}
+      src:[["AusDBF Athlete Pathway, Talent 2, p25",SRC.pathway+"#page=25"],[HB+", crew selection (boat placement, performing under pressure), p9",SRC.handbook],["AusDBF Athlete Pathway, Talent 2 competitions, p18",SRC.pathway+"#page=18"]]}
   ];
   const tiers=[
+    ["Club: ACCA",[
+      [SRC.accaTry,"ACCA website: Come and Try","Training Tuesdays and Thursdays 6:30–8:30pm, Saturdays 8:30–10:30am, from Rozelle Bay Public Pontoon into Blackwattle Bay. Used for session dates and times."],
+      [SRC.handbook,HB+" (V1, Dec 2025), p9","Coaches handle seating for race crews. Boat placement (Engine, Stroke, Row 10, boat balance, side preference) is a selection criterion, as is performing under pressure."],
+      [SRC.handbook,HB+" (V1, Dec 2025), p7","Paddler time trials and performance targets: the club benchmark used for XP4."],
+      [SRC.accaCoaches,"ACCA website: Our coaches","The ACCA coaching team, who have the final say on seating."]
+    ]],
+    ["NSW: Dragon Boat NSW",[
+      [SRC.dbnsw,"Dragon Boat NSW Athlete Pathway Framework","Based on the AusDBF pathway and its Foundation, Talent, Elite and Mastery model. Club, then region, state, then Australia."],
+      [SRC.ltp,"Dragon Boat NSW Learn to Paddle training plan (2021)","Session 1 introduces the crew roles (coach, sweep, drummer, strokes) and boat positions, and says to be aware of weight differences when loading."]
+    ]],
     ["National: AusDBF",[
-      [SRC.pathway,"AusDBF Athlete Pathway (V5, Sept 2022)","Foundation, Talent, Elite and Mastery phases with paddler, sweep and drummer competencies at each phase. Used for the XP1–XP5 criteria. The drummer drums in time with the strokes."],
+      [SRC.pathway,"AusDBF Athlete Pathway (V5, Sept 2022)","Foundation, Talent, Elite and Mastery phases with paddler, sweep and drummer competencies. Used for the XP1–XP5 criteria (p24–25). The drummer drums in time with the strokes."],
       [SRC.safety,"AusDBF Safety Manual (2012, reviewed 2013)","Decide seating before boarding. Seat paddlers of similar weight together. Strokes and drummer board last. Balance the boat left and right, and front and back, before heading out. Swim 50 m clothed, or wear a PFD."],
       [SRC.ancas,"AusDBF Coaching Framework (ANCAS V6, June 2024)","Level 1 coaches learn boat loading, boat balance, and how to create a crew list and seating plan. Talent 1 focus includes team selection and boat placement."],
       [SRC.t9,"AusDBF T9 Coaching Template: Boat Seat Plan","Coach seat plan sheet: drummer, rows 1–10 left and right, sweep, reserves, and left-side and right-side kg totals. The Seat plan tab mirrors this."]
     ]],
-    ["NSW: Dragon Boat NSW",[
-      [SRC.dbnsw,"Dragon Boat NSW Athlete Pathway Framework","Adopts the AusDBF pathway and its Foundation, Talent, Elite and Mastery model. Club, then region, state, then Australia."],
-      [SRC.ltp,"Dragon Boat NSW Learn to Paddle training plan (2021)","Session 1 introduces the crew roles (coach, sweep, drummer, strokes) and boat positions, and says to be aware of weight differences when loading."]
-    ]],
-    ["Other Australian state bodies",[
-      [SRC.dbsa,"Dragon Boats SA New Team Manual","Pair paddlers of similar weight or height. Heavier pairs in the middle. Keep taller crew out of the front and back rows, because of back injury risk."],
-      [SRC.dbv,"Dragon Boat Victoria: How to Dragon Boat","Foundation Phase 1, taken from the AusDBF pathway: safe conduct, getting in and out, posture, paddle connection, timing, boat commands and basic drills."]
-    ]],
-    ["Australian clubs (not official bodies)",[
-      [SRC.psdbc,"Port Stephens Dragon Boat Club (NSW): Roles in a Dragon Boat","Strokes in seat one set the pace. Pacers sit directly behind them, protect them and pass the timing back. The engine room is the middle four rows. The back paddlers are sprinters with an enormous task."],
-      [SRC.ccdbc,"Central Coast Dragon Boat Club: How a Crew Works","The strokes, also called pacers, at the front of the boat work together to set the stroke rate."],
-      [SRC.flyers,"Dragon Flyers: Levels of Training","Says the AusDBF requires paddlers to be race fit at any level of competition."]
-    ]],
-    ["Planner rules (no Australian source)",[
+    ["Planner rules (not set by these sources)",[
+      ["","Row 2: pacers, XP4–XP5","Back up the strokes and pass the timing back. A coaching convention."],
       ["","Row 3: XP3+","Keeps new starters out of the first row that picks up the timing."],
+      ["","Engine room: rows 4–7, heavier pairs","ACCA names Engine as a boat placement (Handbook p9); the rows are a planner convention."],
       ["","Engine room leader","At least one XP4–XP5 paddler in the engine room to lead calls."],
+      ["","Rocket: rows 8–10","ACCA names Row 10 as a boat placement (Handbook p9); the Rocket label and rows are a planner convention."],
       ["","Empty rows spread out","Tested 13-Oct-26: with 16 paddlers, spreading cut centre-of-weight points from 83 to 3."],
-      ["","New starter seats","Middle or back is a coach setting, as clubs differ."]
-    ]],
-
+      ["","New starter seats","Middle or back is a coach setting."]
+    ]]
   ];
   // Guide sections, most used first. Phones: collapsed tap rows with a one-line summary. Wider screens: all open, with jump links.
   const secs=[
@@ -740,7 +739,7 @@ function renderLogic(){
           <tr><td>Empty seat in rows 1–2, or a race-day paddler on the wrong side</td><td>1,000</td></tr>
         </tbody>
       </table></div></details>
-      <p class="muted">Australian sources only, AusDBF and Dragon Boat NSW first. ACCA coaches have the final say.</p>`},
+      <p class="muted">Sources: ACCA, Dragon Boat NSW and AusDBF only. ACCA coaches have the final say.</p>`},
     {id:"rules",title:"Seating rules",teaser:"The fixed rules every plan follows.",body:`
       <ul class="logic-list">
         <li>Race days: left-only and right-only paddlers sit on their side. Training: sides are ignored. Now: ${set("stype",s.sessionType==="race"?"race":"training")}.</li>
@@ -756,14 +755,15 @@ function renderLogic(){
         <tbody>${roles.map(r=>`<tr><td>${r[0]}</td><td><b>${r[1]}</b><br><span class="muted">${r[2]}</span></td></tr>`).join("")}</tbody>
       </table></div>`},
     {id:"levels",title:"XP levels",teaser:"What XP1 to XP5 mean, and where each level sits.",body:`
-      <p class="muted">XP1–XP5 follow the AusDBF Athlete Pathway phases, adopted by Dragon Boat NSW. No Australian body publishes an official 1–5 scale, so level boundaries are a coaching call. ACCA coaches decide.</p>
+      <p class="muted">XP1–XP5 follow the AusDBF Athlete Pathway phases, which the <a href="${SRC.dbnsw}" target="_blank" rel="noopener">Dragon Boat NSW pathway</a> is based on. No official 1–5 scale exists, so level boundaries are a coaching call. ACCA coaches decide.</p>
       ${levels.map(l=>`<div class="lvl-crit">
         <h3><span class="lvl lvl${l.n}">XP${l.n}</span>${l.name}</h3>
         <p class="lvl-sum">${l.sum}</p>
         <p><b>Seats:</b> ${l.seats}</p>
         <details class="why"><summary>Criteria</summary>
-          <p class="muted">${l.stage}</p>
+          <p class="muted">${link(l.src[0])}: ${l.stage.split(": ").slice(1).join(": ")}</p>
           <ul class="logic-list">${l.crit.map(c=>`<li>${c}</li>`).join("")}</ul>
+          ${l.src.length>1?`<p class="lvl-also">Also: ${l.src.slice(1).map(link).join(" · ")}</p>`:""}
         </details>
       </div>`).join("")}`},
     {id:"balance",title:"Boat balance",teaser:"Weight targets side to side and front to back.",body:`
@@ -797,11 +797,11 @@ function renderLogic(){
         <li><b>Android:</b> open this page in Chrome &gt; tap ⋮ &gt; <b>Install app</b>.</li>
       </ul>
       <p class="muted">It then opens full screen and works offline. On iPhone, the installed app keeps its own roster, separate from Safari.</p>`},
-    {id:"sources",title:"Sources",teaser:"Australian sources, in priority order.",body:`
-      <p class="muted">In priority order. Rules with no Australian source are listed last as planner rules.</p>
+    {id:"sources",title:"Sources",teaser:"ACCA, Dragon Boat NSW and AusDBF, in that order.",body:`
+      <p class="muted">In priority order: ACCA, then Dragon Boat NSW, then AusDBF. Rules none of them set are listed last as planner rules.</p>
       ${tiers.map(([tier,list])=>`<h3>${tier}</h3>
       <div class="roster-wrap"><table class="rules src">
-        <thead><tr><th>${list[0][0]?"Source":"Rule"}</th><th>${list[0][0]?"What it says about seating":"Why"}</th></tr></thead>
+        <thead><tr><th>${tier.startsWith("Planner")?"Rule":"Source"}</th><th>${tier.startsWith("Planner")?"Why":"What it says about seating"}</th></tr></thead>
         <tbody>${list.map(r=>`<tr><td>${r[0]?`<a href="${r[0]}" target="_blank" rel="noopener">${r[1]}</a>`:r[1]}</td><td>${r[2]}</td></tr>`).join("")}</tbody>
       </table></div>`).join("")}`},
   ];
