@@ -294,6 +294,21 @@ nav button .ic,nav button .lb-short{display:none}
 .gsec[open]{padding-bottom:1rem}
 .gsec>:not(summary){margin-left:1rem;margin-right:1rem}
 @media (prefers-reduced-motion:reduce){.gsec>summary::after{transition:none}}
+/* Guide: How to use flow (row of 4 on wide screens, stacked on phones) */
+.flow-steps{list-style:none;margin:.4rem 0 0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:1.4rem}
+.flow-steps li{position:relative}
+.flow-steps li:not(:last-child)::after{content:"→";position:absolute;right:-1.15rem;top:50%;transform:translateY(-50%);color:var(--red);font-weight:700}
+.flow-steps button{width:100%;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;padding:.6rem .4rem;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--red);border-radius:8px;cursor:pointer;text-align:center}
+.flow-steps button:hover{background:var(--bg)}
+.flow-steps .fs-n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;font-weight:700;font-size:.9rem}
+.flow-steps b{font-size:1rem}
+.flow-steps small{color:var(--muted);font-size:.82rem}
+@media (max-width:767px),(orientation:landscape) and (max-height:540px){
+  .flow-steps{grid-template-columns:1fr;gap:1.3rem}
+  .flow-steps li:not(:last-child)::after{content:"↓";right:auto;left:50%;top:auto;bottom:-1.25rem;transform:translateX(-50%)}
+  .flow-steps button{min-height:56px;flex-direction:row;justify-content:flex-start;gap:.7rem;padding:.5rem .8rem}
+  .flow-steps small{margin-left:auto}
+}
 /* Roster on phones: cards + bottom sheet */
 .pcards{display:flex;flex-direction:column;gap:.45rem}
 .pcard{display:flex;align-items:center;gap:.6rem;width:100%;min-height:60px;padding:.55rem .75rem;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;cursor:pointer}
@@ -807,10 +822,13 @@ function renderLogic(){
       </table></div>`).join("")}`},
   ];
   const phone=lastPhone=PHONE_MQ.matches;
-  main.innerHTML=phone
+  // How to use: 4 numbered steps matching the tabs; tap a step to open it
+  const flow=`<div class="panel flow"><h2>How to use</h2><ol class="flow-steps">${[["roster","Roster","Add paddlers"],["attend","Who's paddling","Tick who's in"],["plan","Seat plan","Check, approve"],["share","Share","Copy to chat"]].map(([t,n,d],i)=>`<li><button type="button" data-goto="${t}"><span class="fs-n">${i+1}</span><b>${n}</b><small>${d}</small></button></li>`).join("")}</ol></div>`;
+  main.innerHTML=flow+(phone
     ? secs.map(x=>`<details class="panel gsec" id="${x.id}"><summary><span><h2>${x.title}</h2><small>${x.teaser}</small></span></summary>${x.body}</details>`).join("")
     : `<div class="panel gtoc"><h2>On this page</h2><ul>${secs.map(x=>`<li><a href="#${x.id}" data-jump="${x.id}">${x.title}</a></li>`).join("")}</ul></div>`
-      + secs.map(x=>`<div class="panel" id="${x.id}"><h2>${x.title}</h2>${x.body}<p class="totop"><a href="#top" data-top>Back to top ↑</a></p></div>`).join("");
+      + secs.map(x=>`<div class="panel" id="${x.id}"><h2>${x.title}</h2>${x.body}<p class="totop"><a href="#top" data-top>Back to top ↑</a></p></div>`).join(""));
+  main.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>setTab(b.dataset.goto)));
   main.querySelectorAll("[data-top]").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); window.scrollTo(0,0); }));
   main.querySelectorAll("[data-jump]").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault(); const d=document.getElementById(a.dataset.jump); if(d.tagName==="DETAILS") d.open=true; d.scrollIntoView(); }));
   main.querySelectorAll("[data-setting]").forEach(a=>a.addEventListener("click",e=>{ e.preventDefault();
